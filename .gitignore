@@ -1,0 +1,83 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+pip-wheel-metadata/
+share/python-wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+
+# Virtual Environment
+venv/
+env/
+ENV/
+env.bak/
+venv.bak/
+
+# IDEs
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.DS_Store
+
+# Dataset y modelos (archivos grandes)
+data/dataset/
+*.zip
+*.tar.gz
+
+# Modelos entrenados
+alpr_train/
+models/*.pt
+*.weights
+*.pth
+
+# Resultados
+results/
+runs/
+*.jpg
+*.jpeg
+*.png
+*.bmp
+test_images/*.jpg
+test_images/*.jpeg
+test_images/*.png
+
+# Excepciones (permitir README en carpetas)
+!test_images/.gitkeep
+!data/.gitkeep
+!models/.gitkeep
+!results/.gitkeep
+
+# Logs
+*.log
+logs/
+
+# Jupyter Notebooks
+.ipynb_checkpoints/
+*.ipynb
+
+# Sistema
+Thumbs.db
+.DS_Store
+
+# Temporales
+*.tmp
+*.temp
+crop_*.jpg
