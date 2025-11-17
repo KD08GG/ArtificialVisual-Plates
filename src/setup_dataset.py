@@ -39,7 +39,7 @@ def unzip_dataset(zip_path, extract_to=None):
     with zipfile.ZipFile(zip_path, 'r') as zip_ref:
         zip_ref.extractall(extract_to)
 
-    print(f"✓ Dataset descomprimido correctamente en: {extract_to}")
+    print(f"Dataset descomprimido correctamente en: {extract_to}")
 
 
 def verify_dataset_structure(dataset_path=None):
@@ -59,7 +59,7 @@ def verify_dataset_structure(dataset_path=None):
     print("="*50)
 
     if not dataset_path.exists():
-        print(f"❌ No se encontró el dataset en: {dataset_path}")
+        print(f"No se encontró el dataset en: {dataset_path}")
         return False
 
     # Recorrer y mostrar estructura
@@ -80,9 +80,9 @@ def verify_dataset_structure(dataset_path=None):
     # Verificar archivos importantes
     data_yaml = dataset_path / "data.yaml"
     if data_yaml.exists():
-        print(f"✓ Archivo de configuración encontrado: data.yaml")
+        print(f"Archivo de configuración encontrado: data.yaml")
     else:
-        print(f"⚠ No se encontró data.yaml en {dataset_path}")
+        print(f"No se encontró data.yaml en {dataset_path}")
 
     # Verificar directorios estándar
     standard_dirs = ["train", "valid", "test"]
@@ -97,7 +97,7 @@ def verify_dataset_structure(dataset_path=None):
 
             print(f"✓ {dir_name}: {img_count} imágenes, {lbl_count} etiquetas")
         else:
-            print(f"⚠ Directorio '{dir_name}' no encontrado")
+            print(f"Directorio '{dir_name}' no encontrado")
 
     return True
 

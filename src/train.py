@@ -26,19 +26,19 @@ def check_environment():
 
     # Verificar CUDA/GPU
     if torch.cuda.is_available():
-        print(f"✓ GPU disponible: {torch.cuda.get_device_name(0)}")
-        print(f"  CUDA Version: {torch.version.cuda}")
+        print(f"GPU disponible: {torch.cuda.get_device_name(0)}")
+        print(f"CUDA Version: {torch.version.cuda}")
         device = "0"
     else:
-        print("⚠ GPU no disponible, usando CPU")
+        print("GPU no disponible, usando CPU")
         device = "cpu"
 
     # Verificar dataset
     if check_dataset():
-        print(f"✓ Dataset encontrado: {DATA_YAML}")
+        print(f"Dataset encontrado: {DATA_YAML}")
     else:
-        print(f"❌ Dataset no encontrado")
-        print("   Ejecuta primero: python src/setup_dataset.py")
+        print(f"Dataset no encontrado")
+        print("Ejecuta primero: python src/setup_dataset.py")
         return False, device
 
     print("="*50)
@@ -122,15 +122,15 @@ def train_model(
         print("\n" + "="*50)
         print("ENTRENAMIENTO COMPLETADO")
         print("="*50)
-        print(f"✓ Resultados guardados en: {project}/{name}/")
-        print(f"✓ Mejor modelo: {project}/{name}/weights/best.pt")
-        print(f"✓ Último modelo: {project}/{name}/weights/last.pt")
+        print(f"Resultados guardados en: {project}/{name}/")
+        print(f"Mejor modelo: {project}/{name}/weights/best.pt")
+        print(f"Último modelo: {project}/{name}/weights/last.pt")
         print("="*50)
 
         return results
 
     except Exception as e:
-        print(f"\n❌ Error durante el entrenamiento: {e}")
+        print(f"\nError durante el entrenamiento: {e}")
         raise
 
 
@@ -151,7 +151,7 @@ def validate_model(model_path, data_path=None):
     model = YOLO(model_path)
     results = model.val(data=data_path)
 
-    print("✓ Validación completada")
+    print("Validación completada")
     return results
 
 
@@ -215,7 +215,7 @@ def main():
 
     args = parser.parse_args()
 
-    # Crear directorios necesarios
+    # Crea directorios necesarios
     create_directories()
 
     # Si solo se quiere validar

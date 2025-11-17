@@ -72,7 +72,7 @@ def predict_folder(model_path, folder_path, conf=0.5, save=True):
         images.extend(folder_path.glob(f"*{ext.upper()}"))
 
     if not images:
-        print(f"⚠ No se encontraron imágenes en: {folder_path}")
+        print(f"No se encontraron imágenes en: {folder_path}")
         return []
 
     print(f"Encontradas {len(images)} imágenes")
@@ -107,19 +107,19 @@ def display_results(results):
         boxes = result.boxes
 
         if len(boxes) == 0:
-            print("  ❌ No se detectaron placas")
+            print("No se detectaron placas")
         else:
-            print(f"  ✓ Detectadas {len(boxes)} placa(s)")
+            print(f"Detectadas {len(boxes)} placa(s)")
 
             for j, box in enumerate(boxes):
                 conf = float(box.conf[0])
                 x1, y1, x2, y2 = box.xyxy[0].tolist()
-                print(f"    Placa {j+1}:")
-                print(f"      - Confianza: {conf:.2%}")
-                print(f"      - Coordenadas: ({int(x1)}, {int(y1)}) -> ({int(x2)}, {int(y2)})")
+                print(f"Placa {j+1}:")
+                print(f"- Confianza: {conf:.2%}")
+                print(f"- Coordenadas: ({int(x1)}, {int(y1)}) -> ({int(x2)}, {int(y2)})")
 
         if result.save_dir:
-            print(f"  💾 Guardado en: {result.save_dir}")
+            print(f"Guardado en: {result.save_dir}")
 
     print("="*50)
 
@@ -176,16 +176,16 @@ def main():
             model_path = get_model_path(args.experiment)
             print(f"Usando modelo: {model_path}")
         except FileNotFoundError as e:
-            print(f"❌ {e}")
+            print(f"{e}")
             print("\nEjecuta primero el entrenamiento:")
-            print("  python src/train.py")
+            print("python src/train.py")
             return
 
     # Verificar si es archivo o carpeta
     source_path = Path(args.source)
 
     if not source_path.exists():
-        print(f"❌ No se encontró: {source_path}")
+        print(f"No se encontró: {source_path}")
         return
 
     print("="*50)

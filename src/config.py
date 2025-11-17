@@ -40,14 +40,14 @@ TEST_IMAGES_DIR = PROJECT_ROOT / "test_images"
 # ============================================
 
 TRAINING_CONFIG = {
-    "epochs": 50,           # Número de épocas (puedes aumentar para mejor precisión)
+    "epochs": 50,           # Número de épocas (aumentar para mejor precisión)
     "imgsz": 640,           # Tamaño de imagen
-    "batch": 8,             # Tamaño de batch (reduce a 4 si hay problemas de memoria)
+    "batch": 8,             # Tamaño de batch (reducucir a 4 si hay problemas de memoria)
     "project": str(TRAINING_DIR),
     "name": "exp1",
     "patience": 10,         # Early stopping
     "save": True,
-    "device": "cpu",        # Cambia a "0" si tienes GPU CUDA disponible
+    "device": "cpu",        # Cambiar a "0" si tienes hay GPU CUDA disponible
 }
 
 # ============================================
@@ -74,7 +74,7 @@ TESSERACT_CONFIG = r'--oem 3 --psm 7 -c tessedit_char_whitelist=ABCDEFGHIJKLMNOP
 # Configuración de EasyOCR
 EASYOCR_CONFIG = {
     "languages": ['es'],    # Español
-    "gpu": False,           # Cambia a True si tienes GPU compatible
+    "gpu": False,           # Cambiar a True si hay GPU compatible
 }
 
 # ============================================
@@ -94,7 +94,7 @@ OCR_CONFIG = {
 # ============================================
 
 def create_directories():
-    """Crea todos los directorios necesarios del proyecto"""
+    """Crea todos los directorios del proyecto"""
     dirs = [
         DATA_DIR,
         DATASET_DIR,
@@ -109,7 +109,7 @@ def create_directories():
     for directory in dirs:
         directory.mkdir(parents=True, exist_ok=True)
 
-    print("✓ Directorios del proyecto creados correctamente")
+    print("Directorios del proyecto creados correctamente")
 
 def check_dataset():
     """Verifica si el dataset está disponible"""
@@ -128,7 +128,7 @@ def get_model_path(experiment_name="exp1"):
 
 
 if __name__ == "__main__":
-    # Crear directorios al ejecutar este archivo
+    # Crea directorios al ejecutar este archivo
     create_directories()
     print(f"\nDirectorio del proyecto: {PROJECT_ROOT}")
     print(f"Dataset disponible: {check_dataset()}")

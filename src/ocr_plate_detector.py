@@ -43,6 +43,7 @@ SUBSTITUTIONS = {
 }
 
 # Heurística para corregir confusiones entre caracteres similares
+"""
 CHAR_CONFUSIONS = {
     '0': 'O', 'O': 'O',
     '1': '1', 'I': '1', 'L': '1',
@@ -50,7 +51,7 @@ CHAR_CONFUSIONS = {
     '5': '5', 'S': '5',
     '8': '8', 'B': '8'
 }
-
+"""
 
 # ============================================
 # CLASE PRINCIPAL
@@ -88,12 +89,12 @@ class PlateDetectorOCR:
                     EASYOCR_CONFIG["languages"],
                     gpu=EASYOCR_CONFIG["gpu"]
                 )
-                print("✓ EasyOCR listo")
+                print("EasyOCR listo")
             except Exception as e:
-                print(f"⚠ No se pudo inicializar EasyOCR: {e}")
+                print(f"No se pudo inicializar EasyOCR: {e}")
                 self.use_easyocr = False
 
-        print("✓ Detector inicializado correctamente")
+        print("Detector inicializado correctamente")
 
     # ============================================
     # MÉTODOS DE PREPROCESAMIENTO
@@ -186,6 +187,7 @@ class PlateDetectorOCR:
         Returns:
             str or None: Placa formateada o None si no coincide
         """
+        
         m = PLATE_REGEX.search(txt)
         if not m:
             return None
@@ -461,7 +463,7 @@ def main():
     print("="*50)
 
     if not results:
-        print("❌ No se detectaron placas")
+        print("No se detectaron placas")
     else:
         print(f"✓ Detectadas {len(results)} placa(s):\n")
         for i, res in enumerate(results):
@@ -472,3 +474,4 @@ def main():
 
 if __name__ == "__main__":
     main()
+    

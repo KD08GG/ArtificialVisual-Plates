@@ -48,7 +48,7 @@ def menu_principal():
             print("\n¡Hasta luego!")
             break
         else:
-            print("\n❌ Opción no válida")
+            print("\nOpción no válida")
 
 
 def configurar_dataset():
@@ -67,7 +67,7 @@ def configurar_dataset():
             unzip_dataset(zip_path)
             verify_dataset_structure()
         except Exception as e:
-            print(f"\n❌ Error: {e}")
+            print(f"\nError: {e}")
 
     elif opcion == "2":
         verify_dataset_structure()
@@ -81,7 +81,7 @@ def entrenar_modelo():
 
     # Verificar dataset
     if not check_dataset():
-        print("\n❌ Dataset no configurado")
+        print("\nDataset no configurado")
         print("   Por favor, configura primero el dataset (opción 1)")
         input("\nPresiona Enter para continuar...")
         return
@@ -125,7 +125,7 @@ def entrenar_modelo():
             print("\nEntrenamiento cancelado")
 
     except Exception as e:
-        print(f"\n❌ Error durante el entrenamiento: {e}")
+        print(f"\nError durante el entrenamiento: {e}")
 
     input("\nPresiona Enter para continuar...")
 
@@ -147,14 +147,14 @@ def hacer_predicciones():
         source = input("\nRuta a imagen o carpeta: ").strip()
 
         if not source:
-            print("❌ Debes especificar una fuente")
+            print("Debes especificar una fuente")
             input("\nPresiona Enter para continuar...")
             return
 
         source_path = Path(source)
 
         if not source_path.exists():
-            print(f"❌ No se encontró: {source}")
+            print(f"No se encontró: {source}")
             input("\nPresiona Enter para continuar...")
             return
 
@@ -174,10 +174,10 @@ def hacer_predicciones():
         print(f"   Resultados guardados en: runs/detect/predict/")
 
     except FileNotFoundError as e:
-        print(f"\n❌ {e}")
+        print(f"\n{e}")
         print("\n   Primero debes entrenar el modelo (opción 2)")
     except Exception as e:
-        print(f"\n❌ Error: {e}")
+        print(f"\nError: {e}")
 
     input("\nPresiona Enter para continuar...")
 
@@ -203,12 +203,12 @@ def reconocer_placas():
         image_path = input("\nRuta a la imagen: ").strip()
 
         if not image_path:
-            print("❌ Debes especificar una imagen")
+            print("Debes especificar una imagen")
             input("\nPresiona Enter para continuar...")
             return
 
         if not Path(image_path).exists():
-            print(f"❌ No se encontró: {image_path}")
+            print(f"No se encontró: {image_path}")
             input("\nPresiona Enter para continuar...")
             return
 
@@ -238,10 +238,10 @@ def reconocer_placas():
         print("="*60)
 
     except FileNotFoundError as e:
-        print(f"\n❌ {e}")
-        print("\n   Primero debes entrenar el modelo (opción 2)")
+        print(f"\n{e}")
+        print("\nPrimero debes entrenar el modelo (opción 2)")
     except Exception as e:
-        print(f"\n❌ Error: {e}")
+        print(f"\nError: {e}")
         import traceback
         traceback.print_exc()
 
