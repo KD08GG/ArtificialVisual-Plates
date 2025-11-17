@@ -226,7 +226,7 @@ def reconocer_placas():
         print("="*60)
 
         if not results:
-            print("❌ No se detectaron placas en la imagen")
+            print("No se detectaron placas en la imagen")
         else:
             print(f"\n✓ Detectadas {len(results)} placa(s):\n")
             for i, res in enumerate(results):
