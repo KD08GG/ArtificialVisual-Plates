@@ -350,6 +350,9 @@ class PlateDetectorOCR:
                         method = "tesseract+easyocr"
 
             # Heurística adicional: aplicar correcciones de confusiones
+            # COMENTADO: No se usa la heurística de CHAR_CONFUSIONS
+            # Descomentar este bloque si se quiere activar la corrección heurística
+            """
             if fixed is None:
                 corrected = tesseract_text
                 for k, v in CHAR_CONFUSIONS.items():
@@ -358,6 +361,7 @@ class PlateDetectorOCR:
                 fixed = self.try_fix_by_pattern(corrected)
                 if fixed:
                     method = "heuristic_fix"
+            """
 
             # Resultado final
             best_guess = fixed if fixed else (
