@@ -4,6 +4,7 @@ Módulo de detección y reconocimiento OCR de placas vehiculares mexicanas
 Combina YOLOv8 para detección + Tesseract/EasyOCR para reconocimiento de texto
 """
 import cv2
+
 import numpy as np
 import pytesseract
 import re
@@ -18,6 +19,9 @@ from config import (
     CROPS_DIR
 )
 
+
+#pytesseract.pytesseract.tesseract_cmd = r'c:\Users\keren\AppData\Roaming\Python\Python313\Scripts\pytesseract.exe'
+pytesseract.pytesseract.tesseract_cmd = r'c:\Users\keren\AppData\Roaming\Python\Python313\Scripts'
 
 # ============================================
 # CONFIGURACIÓN DE PATRONES Y SUSTITUCIONES
@@ -234,6 +238,105 @@ class PlateDetectorOCR:
         # Si no lo encuentra, truncar a los primeros 7 caracteres válidos
         return texto[:7]
 
+    @staticmethod
+    def enforce_plate_format(raw_text):
+        """
+        Fuerza el formato AAA-999-A aplicando sustituciones.
+        
+        Reglas:
+        - Posiciones 0-2 (letras): convierte números a letras similares
+        - Posiciones 4-6 (números): convierte letras a números similares  
+        - Posición 8 (letra): convierte números a letras similares
+        - Si no se puede corregir, retorna None
+        
+        Args:
+            raw_text (str): Texto OCR crudo
+            
+        Returns:
+            str or None: Placa en formato AAA-999-A o None si no es posible
+        """
+        if not raw_text:
+            return None
+        
+        # Limpiar texto: solo letras, números y guiones
+        cleaned = re.sub(r'[^A-Z0-9-]', '', raw_text.upper())
+        
+        # Remover guiones para trabajar con los caracteres
+        no_dashes = cleaned.replace('-', '')
+        
+        # Verificar longitud mínima
+        if len(no_dashes) < 7:
+            return None
+        
+        # Tomar solo los primeros 7 caracteres
+        chars = list(no_dashes[:7])
+        
+        # ===== MAPEOS DE SUSTITUCIÓN =====
+        
+        # Números que parecen letras (para posiciones de letras)
+        num_to_letter = {
+            '0': 'O',
+            '1': 'I', 
+            '2': 'Z',
+            '3': 'B',
+            '4': 'A',
+            '5': 'S',
+            '6': 'G',
+            '7': 'T',
+            '8': 'B',
+            '9': 'G'
+        }
+        
+        # Letras que parecen números (para posiciones de números)
+        letter_to_num = {
+            'O': '0',
+            'I': '1',
+            'L': '1',
+            'Z': '2',
+            'B': '8',
+            'S': '5',
+            'G': '6',
+            'T': '7',
+            'A': '4'
+        }
+        
+        # ===== CORRECCIÓN POSICIÓN POR POSICIÓN =====
+
+        # Posiciones 0, 1, 2: DEBEN ser letras
+        for i in range(3):
+            if i < len(chars):
+                if chars[i].isdigit():
+                    # Convertir número a letra
+                    chars[i] = num_to_letter.get(chars[i], 'X')
+                elif not chars[i].isalpha():
+                    # Si no es ni letra ni número, usar letra por defecto
+                    chars[i] = 'X'
+        
+        # Posiciones 3, 4, 5: DEBEN ser números
+        for i in range(3, 6):
+            if i < len(chars):
+                if chars[i].isalpha():
+                    # Convertir letra a número
+                    chars[i] = letter_to_num.get(chars[i], '0')
+                elif not chars[i].isdigit():
+                    # Si no es ni letra ni número, usar número por defecto
+                    chars[i] = '0'
+        
+        # Posición 6: DEBE ser letra
+        if len(chars) > 6:
+            if chars[6].isdigit():
+                chars[6] = num_to_letter.get(chars[6], 'X')
+            elif not chars[6].isalpha():
+                chars[6] = 'X'
+        else:
+            # Si falta el séptimo carácter, agregar letra por defecto
+            chars.append('X')
+        
+        # Construir placa con formato AAA-999-A
+        formatted_plate = f"{chars[0]}{chars[1]}{chars[2]}-{chars[3]}{chars[4]}{chars[5]}-{chars[6]}"
+        
+        return formatted_plate
+    
     # ============================================
     # MÉTODOS DE OCR
     # ============================================
@@ -291,7 +394,7 @@ class PlateDetectorOCR:
 
     def recognize_plate_from_image(self, image_path, save_crops=None, visualize=None):
         """
-        Pipeline completo: detectar -> recortar -> preprocess -> OCR -> validar
+        Pipeline completo: detectar -> recortar -> preprocess -> OCR -> validar -> Forzar Formato
 
         Args:
             image_path (str): Ruta a la imagen
@@ -330,77 +433,75 @@ class PlateDetectorOCR:
 
             # OCR con Tesseract
             tesseract_text = self.ocr_with_tesseract(preprocessed)
+            
+            # OCR con EasyOCR (si está disponible)
+            easyocr_text = ""
+            if self.use_easyocr:
+                easyocr_text = self.ocr_with_easyocr(preprocessed)
+
+            # ==== LÓGICA: FORZAR FORMATO ====
+        
+            # Primero intentar con patrón regex normal
             fixed = self.try_fix_by_pattern(tesseract_text)
             method = "tesseract"
 
             # Si no cumple patrón, intentar con EasyOCR
-            easyocr_text = ""
-            if (fixed is None or len(fixed) < 6) and self.use_easyocr:
-                easyocr_text = self.ocr_with_easyocr(preprocessed)
-                fixed_easy = self.try_fix_by_pattern(easyocr_text)
+        if (fixed is None or len(fixed) < 9) and self.use_easyocr:
+            fixed_easy = self.try_fix_by_pattern(easyocr_text)
+            if fixed_easy:
+                fixed = fixed_easy
+                method = "easyocr"
+        
+        # Si TODAVÍA no cumple el patrón, FORZAR el formato
+        if fixed is None or len(fixed) < 9:
+            # Intentar forzar con Tesseract primero
+            forced = self.enforce_plate_format(tesseract_text)
+            
+            if forced:
+                fixed = forced
+                method = "tesseract_forced"
+            elif easyocr_text:
+                # Si no funcionó, intentar forzar con EasyOCR
+                forced = self.enforce_plate_format(easyocr_text)
+                if forced:
+                    fixed = forced
+                    method = "easyocr_forced"
+        
+        # Resultado final
+        best_guess = fixed if fixed else "UNKNOWN"
 
-                if fixed_easy:
-                    fixed = fixed_easy
-                    method = "easyocr"
-                elif fixed is None:
-                    # Intentar combinando ambos
-                    combined = tesseract_text + easyocr_text
-                    fixed = self.try_fix_by_pattern(combined)
-                    if fixed:
-                        method = "tesseract+easyocr"
+        # Guardar recortes si se solicita
+        if save_crops:
+            CROPS_DIR.mkdir(parents=True, exist_ok=True)
+            base_name = Path(image_path).stem
+            cv2.imwrite(str(CROPS_DIR / f"{base_name}_crop_{i}.jpg"), crop)
+            cv2.imwrite(str(CROPS_DIR / f"{base_name}_crop_pre_{i}.jpg"), preprocessed)
 
-            # Heurística adicional: aplicar correcciones de confusiones
-            # COMENTADO: No se usa la heurística de CHAR_CONFUSIONS
-            # Descomentar este bloque si se quiere activar la corrección heurística
-            """
-            if fixed is None:
-                corrected = tesseract_text
-                for k, v in CHAR_CONFUSIONS.items():
-                    corrected = corrected.replace(k, v)
-                corrected = self.postprocess_text(corrected)
-                fixed = self.try_fix_by_pattern(corrected)
-                if fixed:
-                    method = "heuristic_fix"
-            """
+        # Agregar a resultados
+        result = {
+            "bbox": (x1, y1, x2, y2),
+            "raw_tesseract": tesseract_text,
+            "raw_easyocr": easyocr_text,
+            "plate": best_guess,
+            "method": method,
+            "confidence": float(box.conf[0]),
+            "is_valid_format": len(best_guess) == 9 and best_guess != "UNKNOWN"
+        }
 
-            # Resultado final
-            best_guess = fixed if fixed else (
-                tesseract_text if len(tesseract_text) > 0 else easyocr_text
-            )
+        outputs.append(result)
 
-            # Guardar recortes si se solicita
-            if save_crops:
-                CROPS_DIR.mkdir(parents=True, exist_ok=True)
-                base_name = Path(image_path).stem
-                cv2.imwrite(str(CROPS_DIR / f"{base_name}_crop_{i}.jpg"), crop)
-                cv2.imwrite(str(CROPS_DIR / f"{base_name}_crop_pre_{i}.jpg"), preprocessed)
-
-            # Agregar a resultados
-            result = {
-                "bbox": (x1, y1, x2, y2),
-                "raw_tesseract": tesseract_text,
-                "raw_easyocr": easyocr_text,
-                "plate": best_guess,
-                "plate_clean": self.clean_plate_text(best_guess),
-                "method": method,
-                "confidence": float(box.conf[0])
-            }
-
-            outputs.append(result)
-
-            if visualize:
-                print(f"\nPlaca {i+1}:")
-                print(f"  Coordenadas: ({x1}, {y1}) -> ({x2}, {y2})")
-                print(f"  Confianza detección: {result['confidence']:.2%}")
-                print(f"  Texto (Tesseract): {tesseract_text}")
-                if easyocr_text:
-                    print(f"  Texto (EasyOCR): {easyocr_text}")
-                print(f"  Placa detectada: {best_guess}")
-                print(f"  Placa limpia: {result['plate_clean']}")
-                print(f"  Método: {method}")
+        if visualize:
+            print(f"\nPlaca {i+1}:")
+            print(f"  Coordenadas: ({x1}, {y1}) -> ({x2}, {y2})")
+            print(f"  Confianza detección: {result['confidence']:.2%}")
+            print(f"  Texto (Tesseract): {tesseract_text}")
+            if easyocr_text:
+                print(f"  Texto (EasyOCR): {easyocr_text}")
+            print(f"  Placa detectada: {best_guess}")
+            print(f"  Método: {method}")
+            print(f"  Formato válido: {'✓' if result['is_valid_format'] else '✗'}")
 
         return outputs
-
 
 # ============================================
 # EJEMPLO DE USO
