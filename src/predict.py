@@ -31,6 +31,12 @@ def predict_image(model_path, image_path, conf=0.5, save=True, show=False):
     """
     # Cargar modelo
     model = YOLO(model_path)
+    
+     # Crear configuración SIN conf, save, ni show
+    prediction_config = {
+        k: v for k, v in PREDICTION_CONFIG.items() 
+        if k not in ['conf', 'save', 'show']
+    }
 
     # Predecir
     results = model.predict(
@@ -38,7 +44,7 @@ def predict_image(model_path, image_path, conf=0.5, save=True, show=False):
         conf=conf,
         save=save,
         show=show,
-        **PREDICTION_CONFIG
+        **prediction_config
     )
 
     return results
@@ -79,13 +85,19 @@ def predict_folder(model_path, folder_path, conf=0.5, save=True):
 
     # Cargar modelo
     model = YOLO(model_path)
+    
+    # Crear configuración SIN conf, save, ni show
+    prediction_config = {
+        k: v for k, v in PREDICTION_CONFIG.items() 
+        if k not in ['conf', 'save', 'show']
+    }
 
     # Predecir sobre todas las imágenes
     results = model.predict(
         source=str(folder_path),
         conf=conf,
         save=save,
-        **PREDICTION_CONFIG
+        **prediction_config
     )
 
     return results
