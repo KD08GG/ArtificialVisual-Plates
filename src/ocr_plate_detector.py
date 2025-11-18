@@ -3,8 +3,8 @@
 Módulo de detección y reconocimiento OCR de placas vehiculares mexicanas
 Combina YOLOv8 para detección + Tesseract/EasyOCR para reconocimiento de texto
 """
+import warnings
 import cv2
-
 import numpy as np
 import pytesseract
 import re
@@ -18,6 +18,9 @@ from config import (
     OCR_CONFIG,
     CROPS_DIR
 )
+
+# Suprimir warning de pin_memory cuando no hay GPU disponible
+warnings.filterwarnings('ignore', message='.*pin_memory.*')
 
 
 #pytesseract.pytesseract.tesseract_cmd = r'c:\Users\keren\AppData\Roaming\Python\Python313\Scripts\pytesseract.exe'
@@ -46,16 +49,8 @@ SUBSTITUTIONS = {
     '[': '',
 }
 
-# Heurística para corregir confusiones entre caracteres similares
-"""
-CHAR_CONFUSIONS = {
-    '0': 'O', 'O': 'O',
-    '1': '1', 'I': '1', 'L': '1',
-    '2': '2', 'Z': '2',
-    '5': '5', 'S': '5',
-    '8': '8', 'B': '8'
-}
-"""
+# Nota: CHAR_CONFUSIONS fue removido - la lógica ahora está en enforce_plate_format()
+# que usa mapeos bidireccionales más completos (num_to_letter y letter_to_num)
 
 # ============================================
 # CLASE PRINCIPAL
@@ -200,43 +195,6 @@ class PlateDetectorOCR:
         groups = m.groups()
         fixed = f"{groups[0]}-{groups[1]}-{groups[2]}"
         return fixed
-
-    @staticmethod
-    def clean_plate_text(texto):
-        """
-        Limpia y valida el texto OCR para formato AAA999A (sin guiones)
-
-        Args:
-            texto (str): Texto a limpiar
-
-        Returns:
-            str: Texto limpio en formato AAA999A
-        """
-        if not texto:
-            return ""
-
-        # Pasar a mayúsculas
-        texto = texto.upper()
-
-        # Reemplazar caracteres mal detectados
-        sustituciones = {
-            '°': '-', 'º': '-', '—': '-', '–': '-', '_': '-',
-            '$': 'S',
-            ']': '', '[': '', ' ': '', '.': '', ',': ''
-        }
-        for k, v in sustituciones.items():
-            texto = texto.replace(k, v)
-
-        # Eliminar todo lo que no sea letra o número
-        texto = re.sub(r'[^A-Z0-9]', '', texto)
-
-        # Buscar patrón de 3 letras + 3 números + 1 letra
-        patron = re.search(r'([A-Z]{3})(\d{3})([A-Z])', texto)
-        if patron:
-            return "".join(patron.groups())  # AAA999A
-
-        # Si no lo encuentra, truncar a los primeros 7 caracteres válidos
-        return texto[:7]
 
     @staticmethod
     def enforce_plate_format(raw_text):
@@ -433,73 +391,73 @@ class PlateDetectorOCR:
 
             # OCR con Tesseract
             tesseract_text = self.ocr_with_tesseract(preprocessed)
-            
+
             # OCR con EasyOCR (si está disponible)
             easyocr_text = ""
             if self.use_easyocr:
                 easyocr_text = self.ocr_with_easyocr(preprocessed)
 
             # ==== LÓGICA: FORZAR FORMATO ====
-        
+
             # Primero intentar con patrón regex normal
             fixed = self.try_fix_by_pattern(tesseract_text)
             method = "tesseract"
 
             # Si no cumple patrón, intentar con EasyOCR
-        if (fixed is None or len(fixed) < 9) and self.use_easyocr:
-            fixed_easy = self.try_fix_by_pattern(easyocr_text)
-            if fixed_easy:
-                fixed = fixed_easy
-                method = "easyocr"
-        
-        # Si TODAVÍA no cumple el patrón, FORZAR el formato
-        if fixed is None or len(fixed) < 9:
-            # Intentar forzar con Tesseract primero
-            forced = self.enforce_plate_format(tesseract_text)
-            
-            if forced:
-                fixed = forced
-                method = "tesseract_forced"
-            elif easyocr_text:
-                # Si no funcionó, intentar forzar con EasyOCR
-                forced = self.enforce_plate_format(easyocr_text)
+            if (fixed is None or len(fixed) < 9) and self.use_easyocr:
+                fixed_easy = self.try_fix_by_pattern(easyocr_text)
+                if fixed_easy:
+                    fixed = fixed_easy
+                    method = "easyocr"
+
+            # Si TODAVÍA no cumple el patrón, FORZAR el formato
+            if fixed is None or len(fixed) < 9:
+                # Intentar forzar con Tesseract primero
+                forced = self.enforce_plate_format(tesseract_text)
+
                 if forced:
                     fixed = forced
-                    method = "easyocr_forced"
-        
-        # Resultado final
-        best_guess = fixed if fixed else "UNKNOWN"
+                    method = "tesseract_forced"
+                elif easyocr_text:
+                    # Si no funcionó, intentar forzar con EasyOCR
+                    forced = self.enforce_plate_format(easyocr_text)
+                    if forced:
+                        fixed = forced
+                        method = "easyocr_forced"
 
-        # Guardar recortes si se solicita
-        if save_crops:
-            CROPS_DIR.mkdir(parents=True, exist_ok=True)
-            base_name = Path(image_path).stem
-            cv2.imwrite(str(CROPS_DIR / f"{base_name}_crop_{i}.jpg"), crop)
-            cv2.imwrite(str(CROPS_DIR / f"{base_name}_crop_pre_{i}.jpg"), preprocessed)
+            # Resultado final
+            best_guess = fixed if fixed else "UNKNOWN"
 
-        # Agregar a resultados
-        result = {
-            "bbox": (x1, y1, x2, y2),
-            "raw_tesseract": tesseract_text,
-            "raw_easyocr": easyocr_text,
-            "plate": best_guess,
-            "method": method,
-            "confidence": float(box.conf[0]),
-            "is_valid_format": len(best_guess) == 9 and best_guess != "UNKNOWN"
-        }
+            # Guardar recortes si se solicita
+            if save_crops:
+                CROPS_DIR.mkdir(parents=True, exist_ok=True)
+                base_name = Path(image_path).stem
+                cv2.imwrite(str(CROPS_DIR / f"{base_name}_crop_{i}.jpg"), crop)
+                cv2.imwrite(str(CROPS_DIR / f"{base_name}_crop_pre_{i}.jpg"), preprocessed)
 
-        outputs.append(result)
+            # Agregar a resultados
+            result = {
+                "bbox": (x1, y1, x2, y2),
+                "raw_tesseract": tesseract_text,
+                "raw_easyocr": easyocr_text,
+                "plate_clean": best_guess,
+                "method": method,
+                "confidence": float(box.conf[0]),
+                "is_valid_format": len(best_guess) == 9 and best_guess != "UNKNOWN"
+            }
 
-        if visualize:
-            print(f"\nPlaca {i+1}:")
-            print(f"  Coordenadas: ({x1}, {y1}) -> ({x2}, {y2})")
-            print(f"  Confianza detección: {result['confidence']:.2%}")
-            print(f"  Texto (Tesseract): {tesseract_text}")
-            if easyocr_text:
-                print(f"  Texto (EasyOCR): {easyocr_text}")
-            print(f"  Placa detectada: {best_guess}")
-            print(f"  Método: {method}")
-            print(f"  Formato válido: {'✓' if result['is_valid_format'] else '✗'}")
+            outputs.append(result)
+
+            if visualize:
+                print(f"\nPlaca {i+1}:")
+                print(f"  Coordenadas: ({x1}, {y1}) -> ({x2}, {y2})")
+                print(f"  Confianza detección: {result['confidence']:.2%}")
+                print(f"  Texto (Tesseract): {tesseract_text}")
+                if easyocr_text:
+                    print(f"  Texto (EasyOCR): {easyocr_text}")
+                print(f"  Placa detectada: {best_guess}")
+                print(f"  Método: {method}")
+                print(f"  Formato válido: {'✓' if result['is_valid_format'] else '✗'}")
 
         return outputs
 
