@@ -49,8 +49,18 @@ SUBSTITUTIONS = {
     '[': '',
 }
 
-# Nota: CHAR_CONFUSIONS fue removido - la lógica ahora está en enforce_plate_format()
-# que usa mapeos bidireccionales más completos (num_to_letter y letter_to_num)
+# Mapeos para forzar formato de placa (usados en enforce_plate_format)
+# Números que parecen letras (para posiciones de letras)
+NUM_TO_LETTER = {
+    '0': 'O', '1': 'I', '2': 'Z', '3': 'B', '4': 'A',
+    '5': 'S', '6': 'G', '7': 'T', '8': 'B', '9': 'G'
+}
+
+# Letras que parecen números (para posiciones de números)
+LETTER_TO_NUM = {
+    'O': '0', 'I': '1', 'L': '1', 'Z': '2', 'B': '8',
+    'S': '5', 'G': '6', 'T': '7', 'A': '4'
+}
 
 # ============================================
 # CLASE PRINCIPAL
@@ -200,100 +210,61 @@ class PlateDetectorOCR:
     def enforce_plate_format(raw_text):
         """
         Fuerza el formato AAA-999-A aplicando sustituciones.
-        
+
         Reglas:
         - Posiciones 0-2 (letras): convierte números a letras similares
-        - Posiciones 4-6 (números): convierte letras a números similares  
+        - Posiciones 4-6 (números): convierte letras a números similares
         - Posición 8 (letra): convierte números a letras similares
         - Si no se puede corregir, retorna None
-        
+
         Args:
             raw_text (str): Texto OCR crudo
-            
+
         Returns:
             str or None: Placa en formato AAA-999-A o None si no es posible
         """
         if not raw_text:
             return None
-        
+
         # Limpiar texto: solo letras, números y guiones
         cleaned = re.sub(r'[^A-Z0-9-]', '', raw_text.upper())
-        
+
         # Remover guiones para trabajar con los caracteres
         no_dashes = cleaned.replace('-', '')
-        
+
         # Verificar longitud mínima
         if len(no_dashes) < 7:
             return None
-        
-        # Tomar solo los primeros 7 caracteres
+
+        # Tomar solo los primeros 7 caracteres y asegurar que tengamos exactamente 7
         chars = list(no_dashes[:7])
-        
-        # ===== MAPEOS DE SUSTITUCIÓN =====
-        
-        # Números que parecen letras (para posiciones de letras)
-        num_to_letter = {
-            '0': 'O',
-            '1': 'I', 
-            '2': 'Z',
-            '3': 'B',
-            '4': 'A',
-            '5': 'S',
-            '6': 'G',
-            '7': 'T',
-            '8': 'B',
-            '9': 'G'
-        }
-        
-        # Letras que parecen números (para posiciones de números)
-        letter_to_num = {
-            'O': '0',
-            'I': '1',
-            'L': '1',
-            'Z': '2',
-            'B': '8',
-            'S': '5',
-            'G': '6',
-            'T': '7',
-            'A': '4'
-        }
-        
+        if len(chars) < 7:
+            chars.extend(['X'] * (7 - len(chars)))  # Rellenar con 'X' si faltan caracteres
+
         # ===== CORRECCIÓN POSICIÓN POR POSICIÓN =====
 
         # Posiciones 0, 1, 2: DEBEN ser letras
         for i in range(3):
-            if i < len(chars):
-                if chars[i].isdigit():
-                    # Convertir número a letra
-                    chars[i] = num_to_letter.get(chars[i], 'X')
-                elif not chars[i].isalpha():
-                    # Si no es ni letra ni número, usar letra por defecto
-                    chars[i] = 'X'
-        
+            if chars[i].isdigit():
+                chars[i] = NUM_TO_LETTER.get(chars[i], 'X')
+            elif not chars[i].isalpha():
+                chars[i] = 'X'
+
         # Posiciones 3, 4, 5: DEBEN ser números
         for i in range(3, 6):
-            if i < len(chars):
-                if chars[i].isalpha():
-                    # Convertir letra a número
-                    chars[i] = letter_to_num.get(chars[i], '0')
-                elif not chars[i].isdigit():
-                    # Si no es ni letra ni número, usar número por defecto
-                    chars[i] = '0'
-        
+            if chars[i].isalpha():
+                chars[i] = LETTER_TO_NUM.get(chars[i], '0')
+            elif not chars[i].isdigit():
+                chars[i] = '0'
+
         # Posición 6: DEBE ser letra
-        if len(chars) > 6:
-            if chars[6].isdigit():
-                chars[6] = num_to_letter.get(chars[6], 'X')
-            elif not chars[6].isalpha():
-                chars[6] = 'X'
-        else:
-            # Si falta el séptimo carácter, agregar letra por defecto
-            chars.append('X')
-        
+        if chars[6].isdigit():
+            chars[6] = NUM_TO_LETTER.get(chars[6], 'X')
+        elif not chars[6].isalpha():
+            chars[6] = 'X'
+
         # Construir placa con formato AAA-999-A
-        formatted_plate = f"{chars[0]}{chars[1]}{chars[2]}-{chars[3]}{chars[4]}{chars[5]}-{chars[6]}"
-        
-        return formatted_plate
+        return f"{chars[0]}{chars[1]}{chars[2]}-{chars[3]}{chars[4]}{chars[5]}-{chars[6]}"
     
     # ============================================
     # MÉTODOS DE OCR
@@ -381,6 +352,13 @@ class PlateDetectorOCR:
         detections = results[0].boxes
         outputs = []
 
+        # Preparar guardar crops si es necesario
+        if save_crops and len(detections) > 0:
+            CROPS_DIR.mkdir(parents=True, exist_ok=True)
+            base_name = Path(image_path).stem
+        else:
+            base_name = None
+
         # Procesar cada detección
         for i, box in enumerate(detections):
             x1, y1, x2, y2 = map(int, box.xyxy[0])
@@ -397,41 +375,35 @@ class PlateDetectorOCR:
             if self.use_easyocr:
                 easyocr_text = self.ocr_with_easyocr(preprocessed)
 
-            # ==== LÓGICA: FORZAR FORMATO ====
+            # ==== LÓGICA DE RECONOCIMIENTO CON FALLBACK ====
 
-            # Primero intentar con patrón regex normal
+            # Prioridad 1: Regex normal con Tesseract
             fixed = self.try_fix_by_pattern(tesseract_text)
             method = "tesseract"
 
-            # Si no cumple patrón, intentar con EasyOCR
-            if (fixed is None or len(fixed) < 9) and self.use_easyocr:
-                fixed_easy = self.try_fix_by_pattern(easyocr_text)
-                if fixed_easy:
-                    fixed = fixed_easy
+            # Prioridad 2: Regex normal con EasyOCR
+            if not fixed and self.use_easyocr and easyocr_text:
+                fixed = self.try_fix_by_pattern(easyocr_text)
+                if fixed:
                     method = "easyocr"
 
-            # Si TODAVÍA no cumple el patrón, FORZAR el formato
-            if fixed is None or len(fixed) < 9:
-                # Intentar forzar con Tesseract primero
-                forced = self.enforce_plate_format(tesseract_text)
-
-                if forced:
-                    fixed = forced
+            # Prioridad 3: Forzar formato con Tesseract
+            if not fixed and tesseract_text:
+                fixed = self.enforce_plate_format(tesseract_text)
+                if fixed:
                     method = "tesseract_forced"
-                elif easyocr_text:
-                    # Si no funcionó, intentar forzar con EasyOCR
-                    forced = self.enforce_plate_format(easyocr_text)
-                    if forced:
-                        fixed = forced
-                        method = "easyocr_forced"
+
+            # Prioridad 4: Forzar formato con EasyOCR
+            if not fixed and self.use_easyocr and easyocr_text:
+                fixed = self.enforce_plate_format(easyocr_text)
+                if fixed:
+                    method = "easyocr_forced"
 
             # Resultado final
             best_guess = fixed if fixed else "UNKNOWN"
 
             # Guardar recortes si se solicita
-            if save_crops:
-                CROPS_DIR.mkdir(parents=True, exist_ok=True)
-                base_name = Path(image_path).stem
+            if save_crops and base_name:
                 cv2.imwrite(str(CROPS_DIR / f"{base_name}_crop_{i}.jpg"), crop)
                 cv2.imwrite(str(CROPS_DIR / f"{base_name}_crop_pre_{i}.jpg"), preprocessed)
 
