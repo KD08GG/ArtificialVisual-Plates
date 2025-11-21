@@ -16,10 +16,7 @@ from config import (
     TESSERACT_CONFIG,
     EASYOCR_CONFIG,
     OCR_CONFIG,
-    CROPS_DIR,
-    PREPROCESSING_FILTERS,
-    PREPROCESSING_PRESETS,
-    DEFAULT_PRESET
+    CROPS_DIR
 )
 
 # Suprimir warning de pin_memory cuando no hay GPU disponible
@@ -74,8 +71,7 @@ class PlateDetectorOCR:
     Detector de placas vehiculares con OCR integrado
     """
 
-    def __init__(self, model_path=None, experiment_name="exp1", use_easyocr=True,
-                 preprocessing_preset=None):
+    def __init__(self, model_path=None, experiment_name="exp1", use_easyocr=True):
         """
         Inicializa el detector
 
@@ -83,7 +79,6 @@ class PlateDetectorOCR:
             model_path (str): Ruta al modelo YOLOv8 entrenado
             experiment_name (str): Nombre del experimento (si no se proporciona model_path)
             use_easyocr (bool): Usar EasyOCR como fallback
-            preprocessing_preset (str): Preset de filtros a usar ('default', 'high_quality', etc.)
         """
         # Cargar modelo YOLO
         if model_path is None:
@@ -91,16 +86,6 @@ class PlateDetectorOCR:
 
         print(f"Cargando modelo YOLO desde: {model_path}")
         self.yolo_model = YOLO(model_path)
-
-        # Configurar preset de preprocesamiento
-        self.preprocessing_preset = preprocessing_preset if preprocessing_preset else DEFAULT_PRESET
-
-        if self.preprocessing_preset in PREPROCESSING_PRESETS:
-            preset_desc = PREPROCESSING_PRESETS[self.preprocessing_preset].get("description", "")
-            print(f"Preset de preprocesamiento: '{self.preprocessing_preset}' - {preset_desc}")
-        else:
-            print(f"Advertencia: Preset '{self.preprocessing_preset}' no encontrado. Usando 'default'")
-            self.preprocessing_preset = DEFAULT_PRESET
 
         # Inicializar EasyOCR si se solicita
         self.use_easyocr = use_easyocr
@@ -125,249 +110,51 @@ class PlateDetectorOCR:
     # ============================================
 
     @staticmethod
-    def _get_morphology_kernel(shape, size):
+    def preprocess_for_ocr(crop):
         """
-        Crea un kernel morfológico según la forma especificada
-
-        Args:
-            shape (str): 'rect', 'ellipse', o 'cross'
-            size (tuple): Tamaño del kernel (width, height)
-
-        Returns:
-            np.ndarray: Kernel morfológico
-        """
-        shape_map = {
-            'rect': cv2.MORPH_RECT,
-            'ellipse': cv2.MORPH_ELLIPSE,
-            'cross': cv2.MORPH_CROSS
-        }
-        morph_shape = shape_map.get(shape, cv2.MORPH_RECT)
-        return cv2.getStructuringElement(morph_shape, size)
-
-    @staticmethod
-    def _apply_gamma_correction(image, gamma=1.0):
-        """
-        Aplica corrección gamma para ajustar brillo
-
-        Args:
-            image (np.ndarray): Imagen en escala de grises
-            gamma (float): Valor gamma (< 1 aclara, > 1 oscurece)
-
-        Returns:
-            np.ndarray: Imagen corregida
-        """
-        inv_gamma = 1.0 / gamma
-        table = np.array([((i / 255.0) ** inv_gamma) * 255 for i in range(256)]).astype("uint8")
-        return cv2.LUT(image, table)
-
-    @staticmethod
-    def _merge_filter_config(base_config, preset_overrides):
-        """
-        Combina configuración base con overrides del preset
-
-        Args:
-            base_config (dict): Configuración base de filtros
-            preset_overrides (dict): Configuración específica del preset
-
-        Returns:
-            dict: Configuración combinada
-        """
-        import copy
-        merged = copy.deepcopy(base_config)
-
-        for filter_name, overrides in preset_overrides.items():
-            if filter_name in merged:
-                merged[filter_name].update(overrides)
-
-        return merged
-
-    @staticmethod
-    def preprocess_for_ocr(crop, preset=None, custom_filters=None):
-        """
-        Preprocesamiento configurable de imagen para mejorar OCR
-
-        Orden de aplicación de filtros:
-        1. Redimensionamiento
-        2. Conversión a escala de grises
-        3. Corrección gamma (si está habilitada)
-        4. Mejora de contraste (CLAHE o ecualización)
-        5. Reducción de ruido (bilateral, median, gaussian, o NLM)
-        6. Operaciones morfológicas especiales (top hat, black hat)
-        7. Enfoque/sharpening (unsharp mask o laplacian)
-        8. Morfología de limpieza (open, close, gradient)
-        9. Binarización (adaptive, otsu, o simple)
+        Preprocesamiento intensivo de imagen para mejorar OCR
+        Aplica: escala, CLAHE, filtros, sharpen, binarización
 
         Args:
             crop (np.ndarray): Imagen recortada de la placa
-            preset (str): Nombre del preset a usar (ej: 'default', 'high_quality', 'noisy')
-                         Si es None, usa DEFAULT_PRESET
-            custom_filters (dict): Configuración personalizada que sobreescribe el preset
 
         Returns:
             np.ndarray: Imagen preprocesada
         """
-        # Seleccionar preset
-        if preset is None:
-            preset = DEFAULT_PRESET
-
-        # Obtener configuración del preset
-        if preset not in PREPROCESSING_PRESETS:
-            print(f"Advertencia: Preset '{preset}' no encontrado. Usando 'default'")
-            preset = "default"
-
-        preset_config = PREPROCESSING_PRESETS[preset]
-
-        # Combinar configuración base con preset
-        filter_config = PlateDetectorOCR._merge_filter_config(
-            PREPROCESSING_FILTERS,
-            preset_config.get("filters", {})
-        )
-
-        # Aplicar configuración personalizada si se proporciona
-        if custom_filters:
-            filter_config = PlateDetectorOCR._merge_filter_config(
-                filter_config,
-                custom_filters
-            )
-
-        # === PASO 1: REDIMENSIONAMIENTO ===
+        # Escalar para que la altura sea alrededor de 160 px
         h, w = crop.shape[:2]
         target_h = 160
         scale = target_h / float(h) if h > 0 else 1.0
         new_w = max(200, int(w * scale))
-        img = cv2.resize(crop, (new_w, target_h), interpolation=cv2.INTER_LINEAR)
+        crop = cv2.resize(crop, (new_w, target_h), interpolation=cv2.INTER_LINEAR)
 
-        # === PASO 2: CONVERTIR A ESCALA DE GRISES ===
-        if len(img.shape) == 3:
-            img = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
+        # Convertir a escala de grises
+        gray = cv2.cvtColor(crop, cv2.COLOR_BGR2GRAY)
 
-        # === PASO 3: CORRECCIÓN GAMMA ===
-        if filter_config["gamma_correction"]["enabled"]:
-            gamma = filter_config["gamma_correction"]["gamma"]
-            img = PlateDetectorOCR._apply_gamma_correction(img, gamma)
+        # CLAHE para mejorar contraste
+        clahe = cv2.createCLAHE(clipLimit=2.0, tileGridSize=(8, 8))
+        gray = clahe.apply(gray)
 
-        # === PASO 4: MEJORA DE CONTRASTE ===
-        # CLAHE (Contrast Limited Adaptive Histogram Equalization)
-        if filter_config["clahe"]["enabled"]:
-            clip_limit = filter_config["clahe"]["clipLimit"]
-            tile_size = filter_config["clahe"]["tileGridSize"]
-            clahe = cv2.createCLAHE(clipLimit=clip_limit, tileGridSize=tile_size)
-            img = clahe.apply(img)
+        # Denoise preservando bordes
+        gray = cv2.bilateralFilter(gray, d=9, sigmaColor=75, sigmaSpace=75)
 
-        # Ecualización simple de histograma
-        elif filter_config["histogram_equalization"]["enabled"]:
-            img = cv2.equalizeHist(img)
+        # Unsharp mask (sharpen)
+        gaussian = cv2.GaussianBlur(gray, (0, 0), sigmaX=3)
+        sharp = cv2.addWeighted(gray, 1.5, gaussian, -0.5, 0)
 
-        # === PASO 5: REDUCCIÓN DE RUIDO ===
-        # Non-Local Means Denoising (mejor calidad, más lento)
-        if filter_config["nlm_denoising"]["enabled"]:
-            h_param = filter_config["nlm_denoising"]["h"]
-            template_size = filter_config["nlm_denoising"]["templateWindowSize"]
-            search_size = filter_config["nlm_denoising"]["searchWindowSize"]
-            img = cv2.fastNlMeansDenoising(img, h=h_param,
-                                          templateWindowSize=template_size,
-                                          searchWindowSize=search_size)
+        # Morfología: cerrar gaps en caracteres
+        kernel = cv2.getStructuringElement(cv2.MORPH_RECT, (3, 3))
+        morph = cv2.morphologyEx(sharp, cv2.MORPH_CLOSE, kernel, iterations=1)
 
-        # Bilateral Filter (preserva bordes)
-        elif filter_config["bilateral_filter"]["enabled"]:
-            d = filter_config["bilateral_filter"]["d"]
-            sigma_color = filter_config["bilateral_filter"]["sigmaColor"]
-            sigma_space = filter_config["bilateral_filter"]["sigmaSpace"]
-            img = cv2.bilateralFilter(img, d=d, sigmaColor=sigma_color,
-                                     sigmaSpace=sigma_space)
+        # Binarización adaptativa
+        thresh = cv2.adaptiveThreshold(
+            morph, 255,
+            cv2.ADAPTIVE_THRESH_GAUSSIAN_C,
+            cv2.THRESH_BINARY,
+            35, 15
+        )
 
-        # Median Blur (bueno para ruido sal y pimienta, rápido)
-        elif filter_config["median_blur"]["enabled"]:
-            ksize = filter_config["median_blur"]["ksize"]
-            img = cv2.medianBlur(img, ksize)
-
-        # Gaussian Blur (suavizado general)
-        elif filter_config["gaussian_blur"]["enabled"]:
-            ksize = filter_config["gaussian_blur"]["ksize"]
-            sigma_x = filter_config["gaussian_blur"]["sigmaX"]
-            img = cv2.GaussianBlur(img, ksize, sigmaX=sigma_x)
-
-        # === PASO 6: OPERACIONES MORFOLÓGICAS ESPECIALES ===
-        # Top Hat (extrae objetos pequeños brillantes - letras claras)
-        if filter_config["morph_tophat"]["enabled"]:
-            kernel_shape = filter_config["morph_tophat"]["kernel_shape"]
-            kernel_size = filter_config["morph_tophat"]["kernel_size"]
-            kernel = PlateDetectorOCR._get_morphology_kernel(kernel_shape, kernel_size)
-            tophat = cv2.morphologyEx(img, cv2.MORPH_TOPHAT, kernel)
-            img = cv2.add(img, tophat)  # Agregar a la imagen original
-
-        # Black Hat (extrae objetos pequeños oscuros - letras oscuras)
-        if filter_config["morph_blackhat"]["enabled"]:
-            kernel_shape = filter_config["morph_blackhat"]["kernel_shape"]
-            kernel_size = filter_config["morph_blackhat"]["kernel_size"]
-            kernel = PlateDetectorOCR._get_morphology_kernel(kernel_shape, kernel_size)
-            blackhat = cv2.morphologyEx(img, cv2.MORPH_BLACKHAT, kernel)
-            img = cv2.subtract(img, blackhat)  # Restar de la imagen original
-
-        # === PASO 7: ENFOQUE/SHARPENING ===
-        # Unsharp Mask
-        if filter_config["unsharp_mask"]["enabled"]:
-            sigma = filter_config["unsharp_mask"]["sigma"]
-            alpha = filter_config["unsharp_mask"]["alpha"]
-            beta = filter_config["unsharp_mask"]["beta"]
-            blurred = cv2.GaussianBlur(img, (0, 0), sigmaX=sigma)
-            img = cv2.addWeighted(img, alpha, blurred, beta, 0)
-
-        # Laplacian Sharpening
-        elif filter_config["laplacian_sharpen"]["enabled"]:
-            kernel_size = filter_config["laplacian_sharpen"]["kernel_size"]
-            scale = filter_config["laplacian_sharpen"]["scale"]
-            laplacian = cv2.Laplacian(img, cv2.CV_64F, ksize=kernel_size)
-            laplacian = np.uint8(np.absolute(laplacian))
-            img = cv2.addWeighted(img, 1.0, laplacian, scale, 0)
-
-        # === PASO 8: MORFOLOGÍA DE LIMPIEZA ===
-        # Apertura (elimina ruido pequeño)
-        if filter_config["morph_open"]["enabled"]:
-            kernel_shape = filter_config["morph_open"]["kernel_shape"]
-            kernel_size = filter_config["morph_open"]["kernel_size"]
-            iterations = filter_config["morph_open"]["iterations"]
-            kernel = PlateDetectorOCR._get_morphology_kernel(kernel_shape, kernel_size)
-            img = cv2.morphologyEx(img, cv2.MORPH_OPEN, kernel, iterations=iterations)
-
-        # Cierre (cierra gaps en caracteres)
-        if filter_config["morph_close"]["enabled"]:
-            kernel_shape = filter_config["morph_close"]["kernel_shape"]
-            kernel_size = filter_config["morph_close"]["kernel_size"]
-            iterations = filter_config["morph_close"]["iterations"]
-            kernel = PlateDetectorOCR._get_morphology_kernel(kernel_shape, kernel_size)
-            img = cv2.morphologyEx(img, cv2.MORPH_CLOSE, kernel, iterations=iterations)
-
-        # Gradiente morfológico (resalta bordes)
-        if filter_config["morph_gradient"]["enabled"]:
-            kernel_shape = filter_config["morph_gradient"]["kernel_shape"]
-            kernel_size = filter_config["morph_gradient"]["kernel_size"]
-            kernel = PlateDetectorOCR._get_morphology_kernel(kernel_shape, kernel_size)
-            img = cv2.morphologyEx(img, cv2.MORPH_GRADIENT, kernel)
-
-        # === PASO 9: BINARIZACIÓN ===
-        # Adaptive Thresholding (mejor para iluminación no uniforme)
-        if filter_config["adaptive_threshold"]["enabled"]:
-            method = filter_config["adaptive_threshold"]["method"]
-            block_size = filter_config["adaptive_threshold"]["block_size"]
-            C = filter_config["adaptive_threshold"]["C"]
-
-            adaptive_method = (cv2.ADAPTIVE_THRESH_GAUSSIAN_C if method == "gaussian"
-                             else cv2.ADAPTIVE_THRESH_MEAN_C)
-
-            img = cv2.adaptiveThreshold(img, 255, adaptive_method,
-                                       cv2.THRESH_BINARY, block_size, C)
-
-        # Otsu's Thresholding (calcula umbral automáticamente)
-        elif filter_config["otsu_threshold"]["enabled"]:
-            _, img = cv2.threshold(img, 0, 255, cv2.THRESH_BINARY + cv2.THRESH_OTSU)
-
-        # Simple Thresholding (umbral fijo)
-        elif filter_config["simple_threshold"]["enabled"]:
-            thresh_val = filter_config["simple_threshold"]["threshold_value"]
-            _, img = cv2.threshold(img, thresh_val, 255, cv2.THRESH_BINARY)
-
-        return img
+        return thresh
 
     # ============================================
     # MÉTODOS DE POST-PROCESAMIENTO DE TEXTO
@@ -577,8 +364,8 @@ class PlateDetectorOCR:
             x1, y1, x2, y2 = map(int, box.xyxy[0])
             crop = img[y1:y2, x1:x2]
 
-            # Preprocesar con el preset configurado
-            preprocessed = self.preprocess_for_ocr(crop, preset=self.preprocessing_preset)
+            # Preprocesar
+            preprocessed = self.preprocess_for_ocr(crop)
 
             # OCR con Tesseract
             tesseract_text = self.ocr_with_tesseract(preprocessed)
@@ -647,31 +434,6 @@ class PlateDetectorOCR:
         return outputs
 
 # ============================================
-# FUNCIONES AUXILIARES
-# ============================================
-
-def list_available_presets():
-    """Muestra todos los presets de preprocesamiento disponibles"""
-    print("\n" + "="*70)
-    print("PRESETS DE PREPROCESAMIENTO DISPONIBLES")
-    print("="*70)
-
-    for preset_name, preset_info in PREPROCESSING_PRESETS.items():
-        description = preset_info.get("description", "Sin descripción")
-        print(f"\n  [{preset_name}]")
-        print(f"    {description}")
-
-        # Mostrar filtros activos
-        filters = preset_info.get("filters", {})
-        active_filters = [name for name, config in filters.items()
-                         if config.get("enabled", False)]
-
-        if active_filters:
-            print(f"    Filtros activos: {', '.join(active_filters)}")
-
-    print("\n" + "="*70)
-
-# ============================================
 # EJEMPLO DE USO
 # ============================================
 
@@ -680,29 +442,12 @@ def main():
     import argparse
 
     parser = argparse.ArgumentParser(
-        description="Detector de placas con OCR y filtros configurables",
-        formatter_class=argparse.RawDescriptionHelpFormatter,
-        epilog="""
-Ejemplos de uso:
-
-  # Usar preset por defecto
-  python ocr_plate_detector.py --image placa.jpg
-
-  # Usar preset de alta calidad (más lento pero mejor)
-  python ocr_plate_detector.py --image placa.jpg --preset high_quality
-
-  # Usar preset para placas con ruido
-  python ocr_plate_detector.py --image placa.jpg --preset noisy
-
-  # Listar todos los presets disponibles
-  python ocr_plate_detector.py --list-presets
-
-Para más información sobre los presets, consulta el archivo config.py
-        """
+        description="Detector de placas con OCR"
     )
     parser.add_argument(
         "--image",
         type=str,
+        required=True,
         help="Ruta a la imagen con placa"
     )
     parser.add_argument(
@@ -714,48 +459,26 @@ Para más información sobre los presets, consulta el archivo config.py
         "--experiment",
         type=str,
         default="exp1",
-        help="Nombre del experimento (default: exp1)"
-    )
-    parser.add_argument(
-        "--preset",
-        type=str,
-        default=DEFAULT_PRESET,
-        help=f"Preset de preprocesamiento a usar (default: {DEFAULT_PRESET}). "
-             f"Opciones: {', '.join(PREPROCESSING_PRESETS.keys())}"
-    )
-    parser.add_argument(
-        "--list-presets",
-        action="store_true",
-        help="Muestra todos los presets disponibles y sale"
+        help="Nombre del experimento"
     )
     parser.add_argument(
         "--no-easyocr",
         action="store_true",
-        help="No usar EasyOCR como fallback"
+        help="No usar EasyOCR"
     )
     parser.add_argument(
         "--no-save",
         action="store_true",
-        help="No guardar recortes de las placas"
+        help="No guardar recortes"
     )
 
     args = parser.parse_args()
-
-    # Si se solicita listar presets, mostrarlos y salir
-    if args.list_presets:
-        list_available_presets()
-        return
-
-    # Validar que se proporcionó una imagen
-    if not args.image:
-        parser.error("--image es requerido (o usa --list-presets para ver opciones)")
 
     # Crear detector
     detector = PlateDetectorOCR(
         model_path=args.model,
         experiment_name=args.experiment,
-        use_easyocr=not args.no_easyocr,
-        preprocessing_preset=args.preset
+        use_easyocr=not args.no_easyocr
     )
 
     # Reconocer placas
