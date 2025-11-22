@@ -193,10 +193,14 @@ def reconocer_placas():
         use_easyocr_input = input("¿Usar EasyOCR como fallback? (s/n) [s]: ").strip().lower()
         use_easyocr = use_easyocr_input != 'n'
 
+        use_paddleocr_input = input("¿Usar PaddleOCR como fallback? (s/n) [s]: ").strip().lower()
+        use_paddleocr = use_paddleocr_input != 'n'
+
         print("\nInicializando detector...")
         detector = PlateDetectorOCR(
             experiment_name=exp_name,
-            use_easyocr=use_easyocr
+            use_easyocr=use_easyocr,
+            use_paddleocr=use_paddleocr
         )
 
         # Preguntar imagen
