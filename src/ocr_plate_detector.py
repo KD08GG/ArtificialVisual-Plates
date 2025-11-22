@@ -26,7 +26,7 @@ warnings.filterwarnings('ignore', message='.*pin_memory.*')
 
 
 #pytesseract.pytesseract.tesseract_cmd = r'c:\Users\keren\AppData\Roaming\Python\Python313\Scripts\pytesseract.exe'
-pytesseract.pytesseract.tesseract_cmd = r'c:\Users\keren\AppData\Roaming\Python\Python313\Scripts'
+pytesseract.pytesseract.tesseract_cmd = r'C:\Users\keren\AppData\Local\Programs\Tesseract-OCR\tesseract.exe'
 
 # ============================================
 # CONFIGURACIÓN DE PATRONES Y SUSTITUCIONES
