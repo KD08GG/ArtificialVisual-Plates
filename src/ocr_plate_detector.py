@@ -361,9 +361,22 @@ class PlateDetectorOCR:
             # Ordenar por coordenada X de la bbox
             texts = []
             for line in results[0]:
-                if line:
-                    bbox, (text, conf) = line
-                    texts.append((bbox[0][0], text))  # (x_coord, text)
+                if line and len(line) >= 2:
+                    # line puede ser: [bbox, (text, conf)] o [bbox, text, conf]
+                    bbox = line[0]
+
+                    # Manejar diferentes formatos de respuesta
+                    if isinstance(line[1], (tuple, list)) and len(line[1]) >= 2:
+                        text = line[1][0]  # (text, conf)
+                    elif isinstance(line[1], str):
+                        text = line[1]  # text directo
+                    else:
+                        continue
+
+                    # Obtener coordenada X de la bbox
+                    if isinstance(bbox, (list, tuple)) and len(bbox) > 0:
+                        x_coord = bbox[0][0] if isinstance(bbox[0], (list, tuple)) else bbox[0]
+                        texts.append((x_coord, text))
 
             # Ordenar por coordenada X y concatenar
             texts_sorted = sorted(texts, key=lambda x: x[0])
