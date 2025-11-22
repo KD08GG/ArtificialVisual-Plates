@@ -354,7 +354,7 @@ class PlateDetectorOCR:
         try:
             # PaddleOCR retorna una lista de resultados
             # Formato: [[[bbox], (text, confidence)], ...]
-            results = self.paddle_reader.ocr(img, cls=True)
+            results = self.paddle_reader.ocr(img)
 
             if not results or not results[0]:
                 return ""
