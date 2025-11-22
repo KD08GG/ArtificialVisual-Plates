@@ -116,8 +116,7 @@ class PlateDetectorOCR:
                 self.paddle_reader = PaddleOCR(
                     lang=PADDLEOCR_CONFIG["lang"],
                     use_angle_cls=PADDLEOCR_CONFIG["use_angle_cls"],
-                    use_gpu=PADDLEOCR_CONFIG["use_gpu"],
-                    show_log=PADDLEOCR_CONFIG["show_log"]
+                    use_gpu=PADDLEOCR_CONFIG["use_gpu"]
                 )
                 print("PaddleOCR listo")
             except Exception as e:

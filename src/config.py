@@ -82,7 +82,6 @@ PADDLEOCR_CONFIG = {
     "lang": 'es',           # Idioma: español
     "use_angle_cls": True,  # Usar clasificador de ángulo para corregir rotación
     "use_gpu": False,       # Cambiar a True si hay GPU compatible
-    "show_log": False,      # No mostrar logs detallados
 }
 
 # ============================================
