@@ -115,9 +115,7 @@ class PlateDetectorOCR:
             try:
                 self.paddle_reader = PaddleOCR(
                     lang=PADDLEOCR_CONFIG["lang"],
-                    use_angle_cls=PADDLEOCR_CONFIG["use_angle_cls"],
-                    use_gpu=PADDLEOCR_CONFIG["use_gpu"],
-                    show_log=PADDLEOCR_CONFIG["show_log"]
+                    use_angle_cls=PADDLEOCR_CONFIG["use_angle_cls"]
                 )
                 print("PaddleOCR listo")
             except Exception as e:
@@ -353,25 +351,65 @@ class PlateDetectorOCR:
 
         try:
             # PaddleOCR retorna una lista de resultados
-            # Formato: [[[bbox], (text, confidence)], ...]
             results = self.paddle_reader.ocr(img)
 
-            if not results or not results[0]:
+            # Verificar que results no sea None o vacío
+            if not results:
                 return ""
 
-            # Extraer solo el texto de cada detección
-            # Ordenar por coordenada X de la bbox
+            # Verificar que results[0] exista y no sea None
+            if len(results) == 0 or not results[0]:
+                return ""
+
+            # Extraer texto de cada detección
             texts = []
+
             for line in results[0]:
-                if line:
-                    bbox, (text, conf) = line
-                    texts.append((bbox[0][0], text))  # (x_coord, text)
+                if not line:
+                    continue
+
+                try:
+                    # Intentar diferentes formatos de PaddleOCR
+                    # Formato típico: [bbox, (text, confidence)]
+                    if len(line) >= 2:
+                        bbox = line[0]
+                        text_info = line[1]
+
+                        # Extraer texto
+                        if isinstance(text_info, (tuple, list)):
+                            text = str(text_info[0]) if len(text_info) > 0 else ""
+                        elif isinstance(text_info, str):
+                            text = text_info
+                        else:
+                            text = str(text_info)
+
+                        # Extraer coordenada X para ordenar
+                        try:
+                            if isinstance(bbox, (list, tuple)) and len(bbox) > 0:
+                                first_point = bbox[0]
+                                if isinstance(first_point, (list, tuple)) and len(first_point) > 0:
+                                    x_coord = float(first_point[0])
+                                else:
+                                    x_coord = 0
+                            else:
+                                x_coord = 0
+                        except:
+                            x_coord = 0
+
+                        if text:
+                            texts.append((x_coord, text))
+
+                except Exception as e:
+                    # Saltar esta línea si hay error
+                    continue
 
             # Ordenar por coordenada X y concatenar
-            texts_sorted = sorted(texts, key=lambda x: x[0])
-            txt = "".join([t[1] for t in texts_sorted])
+            if texts:
+                texts_sorted = sorted(texts, key=lambda x: x[0])
+                txt = "".join([t[1] for t in texts_sorted])
+                return self.postprocess_text(txt)
 
-            return self.postprocess_text(txt)
+            return ""
 
         except Exception as e:
             print(f"Error en PaddleOCR: {e}")
