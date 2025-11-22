@@ -25,9 +25,8 @@ from config import (
 warnings.filterwarnings('ignore', message='.*pin_memory.*')
 
 
-#pytesseract.pytesseract.tesseract_cmd = r'c:\Users\keren\AppData\Roaming\Python\Python313\Scripts'
-# Configuración de Tesseract
-pytesseract.pytesseract.tesseract_cmd = r'C:\Users\keren\AppData\Local\Programs\Tesseract-OCR\tesseract.exe'
+#pytesseract.pytesseract.tesseract_cmd = r'c:\Users\keren\AppData\Roaming\Python\Python313\Scripts\pytesseract.exe'
+pytesseract.pytesseract.tesseract_cmd = r'c:\Users\keren\AppData\Roaming\Python\Python313\Scripts'
 
 # ============================================
 # CONFIGURACIÓN DE PATRONES Y SUSTITUCIONES
@@ -117,8 +116,8 @@ class PlateDetectorOCR:
                 self.paddle_reader = PaddleOCR(
                     lang=PADDLEOCR_CONFIG["lang"],
                     use_angle_cls=PADDLEOCR_CONFIG["use_angle_cls"],
-                    #use_gpu=PADDLEOCR_CONFIG["use_gpu"],
-                    #show_log=PADDLEOCR_CONFIG["show_log"]
+                    use_gpu=PADDLEOCR_CONFIG["use_gpu"],
+                    show_log=PADDLEOCR_CONFIG["show_log"]
                 )
                 print("PaddleOCR listo")
             except Exception as e:
@@ -355,7 +354,7 @@ class PlateDetectorOCR:
         try:
             # PaddleOCR retorna una lista de resultados
             # Formato: [[[bbox], (text, confidence)], ...]
-            results = self.paddle_reader.ocr(img, cls=True)
+            results = self.paddle_reader.ocr(img)
 
             if not results or not results[0]:
                 return ""
