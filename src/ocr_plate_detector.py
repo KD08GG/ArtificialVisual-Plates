@@ -11,12 +11,10 @@ import re
 from pathlib import Path
 from ultralytics import YOLO
 import easyocr
-from paddleocr import PaddleOCR
 from config import (
     get_model_path,
     TESSERACT_CONFIG,
     EASYOCR_CONFIG,
-    PADDLEOCR_CONFIG,
     OCR_CONFIG,
     CROPS_DIR
 )
@@ -73,7 +71,7 @@ class PlateDetectorOCR:
     Detector de placas vehiculares con OCR integrado
     """
 
-    def __init__(self, model_path=None, experiment_name="exp1", use_easyocr=True, use_paddleocr=True):
+    def __init__(self, model_path=None, experiment_name="exp1", use_easyocr=True):
         """
         Inicializa el detector
 
@@ -81,7 +79,6 @@ class PlateDetectorOCR:
             model_path (str): Ruta al modelo YOLOv8 entrenado
             experiment_name (str): Nombre del experimento (si no se proporciona model_path)
             use_easyocr (bool): Usar EasyOCR como fallback
-            use_paddleocr (bool): Usar PaddleOCR como fallback
         """
         # Cargar modelo YOLO
         if model_path is None:
@@ -105,24 +102,6 @@ class PlateDetectorOCR:
             except Exception as e:
                 print(f"No se pudo inicializar EasyOCR: {e}")
                 self.use_easyocr = False
-
-        # Inicializar PaddleOCR si se solicita
-        self.use_paddleocr = use_paddleocr
-        self.paddle_reader = None
-
-        if use_paddleocr:
-            print("Inicializando PaddleOCR...")
-            try:
-                self.paddle_reader = PaddleOCR(
-                    lang=PADDLEOCR_CONFIG["lang"],
-                    use_angle_cls=PADDLEOCR_CONFIG["use_angle_cls"],
-                    use_gpu=PADDLEOCR_CONFIG["use_gpu"],
-                    show_log=PADDLEOCR_CONFIG["show_log"]
-                )
-                print("PaddleOCR listo")
-            except Exception as e:
-                print(f"No se pudo inicializar PaddleOCR: {e}")
-                self.use_paddleocr = False
 
         print("Detector inicializado correctamente")
 
@@ -338,45 +317,6 @@ class PlateDetectorOCR:
             print(f"Error en EasyOCR: {e}")
             return ""
 
-    def ocr_with_paddleocr(self, img):
-        """
-        Fallback con PaddleOCR
-
-        Args:
-            img (np.ndarray): Imagen preprocesada
-
-        Returns:
-            str: Texto detectado
-        """
-        if not self.use_paddleocr or self.paddle_reader is None:
-            return ""
-
-        try:
-            # PaddleOCR retorna una lista de resultados
-            # Formato: [[[bbox], (text, confidence)], ...]
-            results = self.paddle_reader.ocr(img)
-
-            if not results or not results[0]:
-                return ""
-
-            # Extraer solo el texto de cada detección
-            # Ordenar por coordenada X de la bbox
-            texts = []
-            for line in results[0]:
-                if line:
-                    bbox, (text, conf) = line
-                    texts.append((bbox[0][0], text))  # (x_coord, text)
-
-            # Ordenar por coordenada X y concatenar
-            texts_sorted = sorted(texts, key=lambda x: x[0])
-            txt = "".join([t[1] for t in texts_sorted])
-
-            return self.postprocess_text(txt)
-
-        except Exception as e:
-            print(f"Error en PaddleOCR: {e}")
-            return ""
-
     # ============================================
     # MÉTODO PRINCIPAL DE RECONOCIMIENTO
     # ============================================
@@ -435,42 +375,25 @@ class PlateDetectorOCR:
             if self.use_easyocr:
                 easyocr_text = self.ocr_with_easyocr(preprocessed)
 
-            # OCR con PaddleOCR (si está disponible)
-            paddleocr_text = ""
-            if self.use_paddleocr:
-                paddleocr_text = self.ocr_with_paddleocr(preprocessed)
-
             # ==== LÓGICA DE RECONOCIMIENTO CON FALLBACK ====
 
             # Prioridad 1: Regex normal con Tesseract
             fixed = self.try_fix_by_pattern(tesseract_text)
             method = "tesseract"
 
-            # Prioridad 2: Regex normal con PaddleOCR
-            if not fixed and self.use_paddleocr and paddleocr_text:
-                fixed = self.try_fix_by_pattern(paddleocr_text)
-                if fixed:
-                    method = "paddleocr"
-
-            # Prioridad 3: Regex normal con EasyOCR
+            # Prioridad 2: Regex normal con EasyOCR
             if not fixed and self.use_easyocr and easyocr_text:
                 fixed = self.try_fix_by_pattern(easyocr_text)
                 if fixed:
                     method = "easyocr"
 
-            # Prioridad 4: Forzar formato con Tesseract
+            # Prioridad 3: Forzar formato con Tesseract
             if not fixed and tesseract_text:
                 fixed = self.enforce_plate_format(tesseract_text)
                 if fixed:
                     method = "tesseract_forced"
 
-            # Prioridad 5: Forzar formato con PaddleOCR
-            if not fixed and self.use_paddleocr and paddleocr_text:
-                fixed = self.enforce_plate_format(paddleocr_text)
-                if fixed:
-                    method = "paddleocr_forced"
-
-            # Prioridad 6: Forzar formato con EasyOCR
+            # Prioridad 4: Forzar formato con EasyOCR
             if not fixed and self.use_easyocr and easyocr_text:
                 fixed = self.enforce_plate_format(easyocr_text)
                 if fixed:
@@ -489,7 +412,6 @@ class PlateDetectorOCR:
                 "bbox": (x1, y1, x2, y2),
                 "raw_tesseract": tesseract_text,
                 "raw_easyocr": easyocr_text,
-                "raw_paddleocr": paddleocr_text,
                 "plate_clean": best_guess,
                 "method": method,
                 "confidence": float(box.conf[0]),
@@ -503,8 +425,6 @@ class PlateDetectorOCR:
                 print(f"  Coordenadas: ({x1}, {y1}) -> ({x2}, {y2})")
                 print(f"  Confianza detección: {result['confidence']:.2%}")
                 print(f"  Texto (Tesseract): {tesseract_text}")
-                if paddleocr_text:
-                    print(f"  Texto (PaddleOCR): {paddleocr_text}")
                 if easyocr_text:
                     print(f"  Texto (EasyOCR): {easyocr_text}")
                 print(f"  Placa detectada: {best_guess}")
@@ -547,11 +467,6 @@ def main():
         help="No usar EasyOCR"
     )
     parser.add_argument(
-        "--no-paddleocr",
-        action="store_true",
-        help="No usar PaddleOCR"
-    )
-    parser.add_argument(
         "--no-save",
         action="store_true",
         help="No guardar recortes"
@@ -563,8 +478,7 @@ def main():
     detector = PlateDetectorOCR(
         model_path=args.model,
         experiment_name=args.experiment,
-        use_easyocr=not args.no_easyocr,
-        use_paddleocr=not args.no_paddleocr
+        use_easyocr=not args.no_easyocr
     )
 
     # Reconocer placas
@@ -586,7 +500,7 @@ def main():
     if not results:
         print("No se detectaron placas")
     else:
-        print(f"Detectadas {len(results)} placa(s):\n")
+        print(f"✓ Detectadas {len(results)} placa(s):\n")
         for i, res in enumerate(results):
             print(f"  {i+1}. {res['plate_clean']} (confianza: {res['confidence']:.2%})")
 
