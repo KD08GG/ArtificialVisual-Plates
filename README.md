@@ -1,20 +1,46 @@
-# ArtificialVisual-Plates
+# ArtificialVisual-Plates 🚗🔍
 
 Sistema de Reconocimiento de Placas Vehiculares con Visión Artificial - Python
 
 Proyecto completo de detección y reconocimiento de placas vehiculares mexicanas utilizando:
 - **YOLOv8** para detección de placas
-- **Tesseract OCR + EasyOCR** para reconocimiento de texto
+- **Triple motor OCR**: Tesseract + EasyOCR + PaddleOCR para reconocimiento de texto
 - Preprocesamiento avanzado de imágenes con OpenCV
+
+[![Python](https://img.shields.io/badge/Python-3.8+-blue.svg)](https://www.python.org/)
+[![YOLOv8](https://img.shields.io/badge/YOLOv8-Ultralytics-00FFFF.svg)](https://github.com/ultralytics/ultralytics)
+[![License](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
+
+---
+
+## 📋 Tabla de Contenidos
+
+- [Características](#características)
+- [Estructura del Proyecto](#estructura-del-proyecto)
+- [Instalación](#instalación)
+- [Uso](#uso)
+- [Flujo de Trabajo Completo](#flujo-de-trabajo-completo)
+- [Configuración Avanzada](#configuración-avanzada)
+- [Ejemplos](#ejemplos)
+- [Troubleshooting](#troubleshooting)
+- [Actualizaciones Recientes](#actualizaciones-recientes)
+- [Mejoras Futuras](#mejoras-futuras)
+- [Contribuciones](#contribuciones)
+- [Licencia](#licencia)
+- [Créditos](#créditos)
 
 ---
 
 ## Características
 
 - Detección automática de placas en imágenes usando YOLOv8
-- Reconocimiento de texto con doble motor OCR (Tesseract + EasyOCR)
+- **Triple motor OCR** con sistema de fallback inteligente:
+  - **Tesseract OCR**: Motor principal de reconocimiento
+  - **EasyOCR**: Fallback para casos difíciles
+  - **PaddleOCR**: Motor adicional para mayor precisión
 - Preprocesamiento inteligente de imágenes para mejorar precisión
 - Validación de formato de placas mexicanas (AAA-999-A)
+- Sistema de corrección automática de texto mediante regex y sustituciones
 - Interfaz de línea de comandos fácil de usar
 - Scripts modulares para cada etapa del proceso
 
@@ -56,6 +82,7 @@ ArtificialVisual-Plates/
 - Python 3.8 o superior
 - pip (gestor de paquetes de Python)
 - Tesseract OCR instalado en el sistema
+- (Opcional) GPU CUDA compatible para acelerar entrenamiento y OCR
 
 ### 2. Clonar el Repositorio
 
@@ -110,6 +137,11 @@ python -c "import torch; print(torch.__version__)"
 
 # Verificar Ultralytics (YOLOv8)
 python -c "from ultralytics import YOLO; print('YOLOv8 OK')"
+
+# Verificar motores OCR
+python -c "import pytesseract; print('Tesseract OK')"
+python -c "import easyocr; print('EasyOCR OK')"
+python -c "from paddleocr import PaddleOCR; print('PaddleOCR OK')"
 ```
 
 ---
@@ -248,6 +280,17 @@ El módulo `ocr_plate_detector.py` incluye múltiples técnicas de preprocesamie
 
 Puedes ajustar estos parámetros en el método `preprocess_for_ocr()`.
 
+### Sistema de Fallback OCR
+
+El sistema utiliza una estrategia de múltiples motores con prioridad:
+
+1. **Tesseract OCR** con validación de patrón regex
+2. **EasyOCR** como fallback si Tesseract falla
+3. **PaddleOCR** para casos adicionales
+4. **Corrección forzada de formato** aplicando sustituciones inteligentes (número↔letra)
+
+Esto maximiza la tasa de reconocimiento exitoso en diferentes condiciones de iluminación y calidad de imagen.
+
 ---
 
 ## Ejemplos
@@ -324,9 +367,40 @@ python src/train.py --device cpu
 ### OCR no reconoce el texto correctamente
 
 1. Verifica que Tesseract esté instalado correctamente
-2. Prueba con EasyOCR activado (está por defecto)
+2. Prueba con EasyOCR y PaddleOCR activados (están por defecto)
 3. Ajusta los parámetros de preprocesamiento en `config.py`
 4. Verifica los recortes guardados en `results/crops/` para diagnosticar
+5. Revisa los mensajes de consola para ver qué motor OCR está funcionando
+
+### Error con PaddleOCR
+
+Si encuentras errores al usar PaddleOCR:
+```bash
+# Reinstalar PaddleOCR
+pip uninstall paddleocr paddlepaddle -y
+pip install paddlepaddle paddleocr
+```
+
+O desactivar PaddleOCR en el código si no es necesario
+
+---
+
+## Actualizaciones Recientes
+
+### v2.0 - Triple Motor OCR (Noviembre 2025)
+
+- ✅ **Implementación de PaddleOCR** como tercer motor de reconocimiento
+- ✅ **Mejoras en manejo de errores** con sistema robusto de fallback
+- ✅ **Optimización de preprocesamiento** con múltiples métodos de binarización
+- ✅ **Sistema de corrección automática** mejorado con sustituciones inteligentes
+- ✅ **Configuración flexible** de parámetros OCR por motor
+
+### Cambios Técnicos
+
+- Agregado `paddlepaddle>=2.5.0` y `paddleocr>=2.7.0` a dependencias
+- Simplificación de configuración de PaddleOCR a parámetros esenciales
+- Manejo robusto de diferentes formatos de salida de PaddleOCR
+- Mejoras en la detección de patrones de placas mexicanas
 
 ---
 
@@ -338,6 +412,7 @@ python src/train.py --device cpu
 - [ ] Interfaz gráfica (GUI)
 - [ ] Soporte para múltiples idiomas en OCR
 - [ ] Base de datos para almacenar resultados
+- [ ] Benchmark comparativo entre los tres motores OCR
 
 ---
 
@@ -379,6 +454,7 @@ Este proyecto es de código abierto y está disponible bajo la licencia MIT.
 - **YOLOv8**: [Ultralytics](https://github.com/ultralytics/ultralytics)
 - **Tesseract OCR**: [Google](https://github.com/tesseract-ocr/tesseract)
 - **EasyOCR**: [JaidedAI](https://github.com/JaidedAI/EasyOCR)
+- **PaddleOCR**: [PaddlePaddle](https://github.com/PaddlePaddle/PaddleOCR)
 - **OpenCV**: [OpenCV Team](https://opencv.org/)
 
 ---
