@@ -69,7 +69,11 @@ PREDICTION_CONFIG = {
 
 # Configuración de Tesseract
 # OEM 3 (LSTM), PSM 7 (una sola línea de texto), whitelist de caracteres válidos
-TESSERACT_CONFIG = r'--oem 3 --psm 7 -c tessedit_char_whitelist=ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789-'
+#TESSERACT_CONFIG = r'--oem 3 --psm 7 -c tessedit_char_whitelist=ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789-'
+
+#Se enfoca en mas de una línea de texto.
+TESSERACT_CONFIG = r'--oem 3 --psm 8 -c tessedit_char_whitelist=ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789-'
+
 
 # Configuración de EasyOCR
 EASYOCR_CONFIG = {

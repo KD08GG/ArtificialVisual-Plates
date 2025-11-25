@@ -82,7 +82,7 @@ def entrenar_modelo():
     # Verificar dataset
     if not check_dataset():
         print("\nDataset no configurado")
-        print("Por favor, configura primero el dataset (opción 1)")
+        print("   Por favor, configura primero el dataset (opción 1)")
         input("\nPresiona Enter para continuar...")
         return
 
@@ -141,7 +141,7 @@ def hacer_predicciones():
         exp_name = input("Nombre del experimento [exp1]: ").strip() or "exp1"
         model_path = get_model_path(exp_name)
 
-        print(f"\nModelo encontrado: {model_path}")
+        print(f"\n✓ Modelo encontrado: {model_path}")
 
         # Preguntar fuente
         source = input("\nRuta a imagen o carpeta: ").strip()
@@ -170,12 +170,12 @@ def hacer_predicciones():
         else:
             results = predict_folder(model_path, str(source_path), conf=conf)
 
-        print("\nPredicciones completadas")
-        print(f"Resultados guardados en: runs/detect/predict/")
+        print("\n✓ Predicciones completadas")
+        print(f"   Resultados guardados en: runs/detect/predict/")
 
     except FileNotFoundError as e:
         print(f"\n{e}")
-        print("\nPrimero debes entrenar el modelo (opción 2)")
+        print("\n   Primero debes entrenar el modelo (opción 2)")
     except Exception as e:
         print(f"\nError: {e}")
 
@@ -228,7 +228,7 @@ def reconocer_placas():
         if not results:
             print("No se detectaron placas en la imagen")
         else:
-            print(f"\nDetectadas {len(results)} placa(s):\n")
+            print(f"\n✓ Detectadas {len(results)} placa(s):\n")
             for i, res in enumerate(results):
                 print(f"  {i+1}. Placa: {res['plate_clean']}")
                 print(f"     Confianza: {res['confidence']:.2%}")
