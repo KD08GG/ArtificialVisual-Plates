@@ -24,7 +24,8 @@ warnings.filterwarnings('ignore', message='.*pin_memory.*')
 
 
 #pytesseract.pytesseract.tesseract_cmd = r'c:\Users\keren\AppData\Roaming\Python\Python313\Scripts\pytesseract.exe'
-pytesseract.pytesseract.tesseract_cmd = r'c:\Users\keren\AppData\Roaming\Python\Python313\Scripts'
+pytesseract.pytesseract.tesseract_cmd = r'c:\Users\keren\AppData\Local\Programs\Tesseract-OCR\tesseract.exe'
+
 
 # ============================================
 # CONFIGURACIÓN DE PATRONES Y SUSTITUCIONES
@@ -160,25 +161,34 @@ class PlateDetectorOCR:
     
     @staticmethod
     def preprocess_for_ocr(crop):
-        # Escalar altura a 180 px
         h, w = crop.shape[:2]
-        scale = 160 / float(h)
+
+        # Escalar altura estándar
+        scale = 200 / float(h)
         new_w = int(w * scale)
-        crop = cv2.resize(crop, (new_w, 160), interpolation=cv2.INTER_CUBIC)
+        crop = cv2.resize(crop, (new_w, 200), interpolation=cv2.INTER_CUBIC)
 
+        # --- RECORTE CENTRAL DE PLACA ---
+        h, w = crop.shape[:2]
+        
+        # Recorte vertical (solo la franja de caracteres)
+        y1 = int(h * 0.30)
+        y2 = int(h * 0.70)
+        #crop = crop[y1:y2, :]
 
-        # Convertir a gris
+        # Recorte lateral (evitar bordes y marcos)
+        x1 = int(w * 0.10)
+        x2 = int(w * 0.90)
+        crop = crop[:, x1:x2]
+
+        # Blanco y negro
         gray = cv2.cvtColor(crop, cv2.COLOR_BGR2GRAY)
 
-        # Suavizado ligero (no bilateral)
         gray = cv2.GaussianBlur(gray, (3, 3), 0)
 
-        # Binarización OTSU (mejor que adaptativa)
         _, thresh = cv2.threshold(gray, 0, 255, cv2.THRESH_BINARY + cv2.THRESH_OTSU)
 
         return thresh
-    
-    
 
     
     # ============================================
@@ -399,8 +409,9 @@ class PlateDetectorOCR:
             # OCR con EasyOCR (si está disponible)
             easyocr_text = ""
             if self.use_easyocr:
-                #easyocr_text = self.ocr_with_easyocr(preprocessed) #imagen preprocesada
-                easyocr_text = self.ocr_with_easyocr(crop) #imagen original
+                easyocr_text = self.ocr_with_easyocr(preprocessed) #imagen preprocesada
+                #easyocr_text = self.ocr_with_easyocr(crop) #imagen original
+
 
 
             # ==== LÓGICA DE RECONOCIMIENTO CON FALLBACK ====
