@@ -1,9 +1,5 @@
 # ArtificialVisual-Plates
-
 ## Automatic License Plate Recognition System for Mexican Vehicles
-
-### Computer Vision Project with Deep Learning
-
 ---
 
 ## Overview
@@ -466,11 +462,6 @@ The project contemplates as a future extension:
    - Plate tracking between frames
    - Integration with web or IP cameras
 
-3. **Reporting System**
-   - Export results to CSV/JSON
-   - PDF report generation with images
-   - Detection history
-
 ---
 
 ## Troubleshooting
@@ -584,8 +575,8 @@ Format Validation Rate: Plates with valid format / Total detected
 1. **Plate format**: The system is optimized for Mexican plates with AAA-999-A format. Other formats require adjustments to regular expressions.
 
 2. **Lighting conditions**: Although robust, the system may have difficulties with:
-   - Severe underexposure (very dark plates)
-   - Overexposure with intense reflections
+   - Severe underexposure (dark plates)
+   - Overexposure with reflections
    - Partial shadows on the plate
 
 3. **Capture angle**: Best performance with frontal plates. Angles greater than 45° may reduce accuracy.
@@ -605,20 +596,6 @@ This project is open source and accepts contributions. Areas of interest:
 - Inference speed optimization
 - Graphical interface implementation
 - Documentation and tutorials
-
-### Contribution Process
-
-1. Fork the repository
-2. Create feature branch: `git checkout -b feature/new-functionality`
-3. Commit changes: `git commit -am 'Add new functionality'`
-4. Push to branch: `git push origin feature/new-functionality`
-5. Create Pull Request
-
----
-
-## License
-
-This project is distributed under the MIT License. See `LICENSE` file for more details.
 
 ---
 
@@ -641,7 +618,6 @@ This project is distributed under the MIT License. See `LICENSE` file for more d
 ## Author
 
 Developed as an academic Computer Vision project.
-
 **Repository**: https://github.com/KD08GG/ArtificialVisual-Plates
 
 ---
