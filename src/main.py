@@ -53,30 +53,37 @@ def menu_principal():
 
 def configurar_dataset():
     """Configuración del dataset"""
-    print_header("CONFIGURACIÓN DEL DATASET")
+    while True:
+        print_header("CONFIGURACIÓN DEL DATASET")
 
-    print("\n1. Descomprimir archivo .zip")
-    print("2. Verificar dataset existente")
-    print("3. Volver al menú principal")
+        print("\n1. Descomprimir archivo .zip")
+        print("2. Verificar dataset existente")
+        print("3. Volver al menú principal")
 
-    opcion = input("\nSelecciona una opción (1-3): ").strip()
+        opcion = input("\nSelecciona una opción (1-3): ").strip()
 
-    if opcion == "1":
-        zip_path = input("\nIngresa la ruta al archivo .zip del dataset: ").strip()
-        try:
-            unzip_dataset(zip_path)
+        if opcion == "1":
+            zip_path = input("\nIngresa la ruta al archivo .zip del dataset: ").strip()
+            try:
+                unzip_dataset(zip_path)
+                verify_dataset_structure()
+            except Exception as e:
+                print(f"\nError: {e}")
+            input("\nPresiona Enter para continuar...")
+
+        elif opcion == "2":
             verify_dataset_structure()
-        except Exception as e:
-            print(f"\nError: {e}")
+            input("\nPresiona Enter para continuar...")
 
-    elif opcion == "2":
-        verify_dataset_structure()
+        elif opcion == "3":
+            break
+        else:
+            print("\nOpción no válida")
+            input("\nPresiona Enter para continuar...")
 
-    input("\nPresiona Enter para continuar...")
 
-
-def entrenar_modelo():
-    """Entrenamiento del modelo"""
+def ejecutar_entrenamiento():
+    """Ejecuta el proceso de entrenamiento del modelo"""
     print_header("ENTRENAMIENTO DEL MODELO")
 
     # Verificar dataset
@@ -128,6 +135,95 @@ def entrenar_modelo():
         print(f"\nError durante el entrenamiento: {e}")
 
     input("\nPresiona Enter para continuar...")
+
+
+def ver_resultados_modelo():
+    """Muestra los resultados del entrenamiento del modelo"""
+    print_header("RESULTADOS DEL MODELO")
+
+    exp_name = input("\nNombre del experimento [exp1]: ").strip() or "exp1"
+
+    from config import TRAINING_DIR
+    exp_dir = TRAINING_DIR / exp_name
+
+    if not exp_dir.exists():
+        print(f"\nNo se encontró el experimento: {exp_name}")
+        print(f"Directorio esperado: {exp_dir}")
+        input("\nPresiona Enter para continuar...")
+        return
+
+    # Verificar archivos de resultados
+    results_files = {
+        "results.png": "Resumen de métricas de entrenamiento",
+        "confusion_matrix.png": "Matriz de confusión",
+        "F1_curve.png": "Curva F1",
+        "P_curve.png": "Curva de Precisión",
+        "R_curve.png": "Curva de Recall",
+        "PR_curve.png": "Curva Precision-Recall",
+        "results.csv": "Resultados en formato CSV"
+    }
+
+    print(f"\n✓ Experimento encontrado: {exp_name}")
+    print(f"   Ubicación: {exp_dir}")
+    print("\n" + "="*60)
+    print("ARCHIVOS DE RESULTADOS DISPONIBLES:")
+    print("="*60)
+
+    found_any = False
+    for filename, description in results_files.items():
+        file_path = exp_dir / filename
+        if file_path.exists():
+            print(f"\n✓ {filename}")
+            print(f"  {description}")
+            print(f"  Ruta: {file_path}")
+            found_any = True
+
+    if not found_any:
+        print("\nNo se encontraron archivos de resultados.")
+        print("Es posible que el entrenamiento aún no haya finalizado.")
+
+    # Verificar modelo entrenado
+    weights_dir = exp_dir / "weights"
+    if weights_dir.exists():
+        print("\n" + "="*60)
+        print("MODELOS ENTRENADOS:")
+        print("="*60)
+
+        best_pt = weights_dir / "best.pt"
+        last_pt = weights_dir / "last.pt"
+
+        if best_pt.exists():
+            print(f"\n✓ Mejor modelo: {best_pt}")
+
+        if last_pt.exists():
+            print(f"✓ Último modelo: {last_pt}")
+
+    print("\n" + "="*60)
+    print("\nPara ver las gráficas, abre los archivos .png con un visor de imágenes.")
+
+    input("\nPresiona Enter para continuar...")
+
+
+def entrenar_modelo():
+    """Menú de entrenamiento del modelo"""
+    while True:
+        print_header("ENTRENAR MODELO")
+
+        print("\n1. Entrenar modelo")
+        print("2. Ver resultados del modelo")
+        print("3. Volver al menú principal")
+
+        opcion = input("\nSelecciona una opción (1-3): ").strip()
+
+        if opcion == "1":
+            ejecutar_entrenamiento()
+        elif opcion == "2":
+            ver_resultados_modelo()
+        elif opcion == "3":
+            break
+        else:
+            print("\nOpción no válida")
+            input("\nPresiona Enter para continuar...")
 
 
 def hacer_predicciones():
@@ -187,11 +283,26 @@ def reconocer_placas():
     print_header("RECONOCIMIENTO DE PLACAS (DETECCIÓN + OCR)")
 
     try:
-        # Configurar detector
-        exp_name = input("Nombre del experimento [exp1]: ").strip() or "exp1"
+        # Pedir nombre del experimento
+        exp_name = input("\nNombre del experimento [exp1]: ").strip() or "exp1"
 
-        use_easyocr_input = input("¿Usar EasyOCR como fallback? (s/n) [s]: ").strip().lower()
-        use_easyocr = use_easyocr_input != 'n'
+        # Mostrar opciones de OCR
+        print("\nEscoger modelo OCR:")
+        print("1. Usar EasyOCR")
+        print("2. Usar Tesseract")
+
+        ocr_opcion = input("\nSelecciona una opción (1-2): ").strip()
+
+        # Configurar según la opción
+        if ocr_opcion == "1":
+            use_easyocr = True
+            print("\n✓ Usando EasyOCR (con Tesseract como respaldo)")
+        elif ocr_opcion == "2":
+            use_easyocr = False
+            print("\n✓ Usando solo Tesseract")
+        else:
+            print("\nOpción no válida, usando EasyOCR por defecto")
+            use_easyocr = True
 
         print("\nInicializando detector...")
         detector = PlateDetectorOCR(
