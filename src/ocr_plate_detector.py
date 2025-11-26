@@ -164,17 +164,17 @@ class PlateDetectorOCR:
         h, w = crop.shape[:2]
 
         # Escalar altura estándar
-        scale = 200 / float(h)
+        scale = 180 / float(h)
         new_w = int(w * scale)
-        crop = cv2.resize(crop, (new_w, 200), interpolation=cv2.INTER_CUBIC)
+        crop = cv2.resize(crop, (new_w, 180), interpolation=cv2.INTER_CUBIC)
 
         # --- RECORTE CENTRAL DE PLACA ---
         h, w = crop.shape[:2]
         
         # Recorte vertical (solo la franja de caracteres)
-        y1 = int(h * 0.30)
-        y2 = int(h * 0.70)
-        #crop = crop[y1:y2, :]
+        y1 = int(h * 0.20)
+        y2 = int(h * 0.80)
+        crop = crop[y1:y2, :]
 
         # Recorte lateral (evitar bordes y marcos)
         x1 = int(w * 0.10)

@@ -53,30 +53,37 @@ def menu_principal():
 
 def configurar_dataset():
     """Configuración del dataset"""
-    print_header("CONFIGURACIÓN DEL DATASET")
+    while True:
+        print_header("CONFIGURACIÓN DEL DATASET")
 
-    print("\n1. Descomprimir archivo .zip")
-    print("2. Verificar dataset existente")
-    print("3. Volver al menú principal")
+        print("\n1. Descomprimir archivo .zip")
+        print("2. Verificar dataset existente")
+        print("3. Volver al menú principal")
 
-    opcion = input("\nSelecciona una opción (1-3): ").strip()
+        opcion = input("\nSelecciona una opción (1-3): ").strip()
 
-    if opcion == "1":
-        zip_path = input("\nIngresa la ruta al archivo .zip del dataset: ").strip()
-        try:
-            unzip_dataset(zip_path)
+        if opcion == "1":
+            zip_path = input("\nIngresa la ruta al archivo .zip del dataset: ").strip()
+            try:
+                unzip_dataset(zip_path)
+                verify_dataset_structure()
+            except Exception as e:
+                print(f"\nError: {e}")
+            input("\nPresiona Enter para continuar...")
+
+        elif opcion == "2":
             verify_dataset_structure()
-        except Exception as e:
-            print(f"\nError: {e}")
+            input("\nPresiona Enter para continuar...")
 
-    elif opcion == "2":
-        verify_dataset_structure()
+        elif opcion == "3":
+            break
+        else:
+            print("\nOpción no válida")
+            input("\nPresiona Enter para continuar...")
 
-    input("\nPresiona Enter para continuar...")
 
-
-def entrenar_modelo():
-    """Entrenamiento del modelo"""
+def ejecutar_entrenamiento():
+    """Ejecuta el proceso de entrenamiento del modelo"""
     print_header("ENTRENAMIENTO DEL MODELO")
 
     # Verificar dataset
@@ -128,6 +135,138 @@ def entrenar_modelo():
         print(f"\nError durante el entrenamiento: {e}")
 
     input("\nPresiona Enter para continuar...")
+
+
+def ver_resultados_modelo():
+    """Muestra los resultados del entrenamiento del modelo"""
+    print_header("RESULTADOS DEL MODELO")
+
+    exp_name = input("\nNombre del experimento [exp1]: ").strip() or "exp1"
+
+    from config import TRAINING_DIR
+    exp_dir = TRAINING_DIR / exp_name
+
+    if not exp_dir.exists():
+        print(f"\nNo se encontró el experimento: {exp_name}")
+        print(f"Directorio esperado: {exp_dir}")
+        input("\nPresiona Enter para continuar...")
+        return
+
+    # Verificar archivos de resultados
+    results_files = {
+        "results.png": "Resumen de métricas de entrenamiento",
+        "confusion_matrix.png": "Matriz de confusión",
+        "F1_curve.png": "Curva F1",
+        "P_curve.png": "Curva de Precisión",
+        "R_curve.png": "Curva de Recall",
+        "PR_curve.png": "Curva Precision-Recall",
+    }
+
+    print(f"\n✓ Experimento encontrado: {exp_name}")
+    print(f"   Ubicación: {exp_dir}")
+    print("\n" + "="*60)
+    print("ARCHIVOS DE RESULTADOS DISPONIBLES:")
+    print("="*60)
+
+    # Recopilar gráficas disponibles
+    available_plots = []
+    for filename, description in results_files.items():
+        file_path = exp_dir / filename
+        if file_path.exists():
+            print(f"\n✓ {filename}")
+            print(f"  {description}")
+            print(f"  Ruta: {file_path}")
+            available_plots.append((filename, description, file_path))
+
+    # Verificar CSV
+    csv_file = exp_dir / "results.csv"
+    if csv_file.exists():
+        print(f"\n✓ results.csv")
+        print(f"  Resultados en formato CSV")
+        print(f"  Ruta: {csv_file}")
+
+    if not available_plots:
+        print("\nNo se encontraron gráficas de resultados.")
+        print("Es posible que el entrenamiento aún no haya finalizado.")
+    else:
+        # Preguntar si desea ver las gráficas
+        print("\n" + "="*60)
+        mostrar = input("\n¿Deseas visualizar las gráficas ahora? (s/n) [s]: ").strip().lower()
+
+        if mostrar != 'n':
+            try:
+                import matplotlib.pyplot as plt
+                import matplotlib.image as mpimg
+
+                print("\nAbriendo gráficas...")
+                print("Cierra cada ventana para ver la siguiente gráfica.")
+
+                # Mostrar cada gráfica
+                for filename, description, file_path in available_plots:
+                    try:
+                        img = mpimg.imread(str(file_path))
+
+                        plt.figure(figsize=(12, 8))
+                        plt.imshow(img)
+                        plt.axis('off')
+                        plt.title(f"{description}\n{filename}", fontsize=14, pad=20)
+                        plt.tight_layout()
+
+                        print(f"\n✓ Mostrando: {filename}")
+                        plt.show()
+
+                    except Exception as e:
+                        print(f"\n✗ Error al mostrar {filename}: {e}")
+
+                print("\n✓ Todas las gráficas han sido mostradas")
+
+            except ImportError:
+                print("\n✗ Error: matplotlib no está disponible")
+                print("   Instala matplotlib con: pip install matplotlib")
+            except Exception as e:
+                print(f"\n✗ Error al mostrar gráficas: {e}")
+
+    # Verificar modelo entrenado
+    weights_dir = exp_dir / "weights"
+    if weights_dir.exists():
+        print("\n" + "="*60)
+        print("MODELOS ENTRENADOS:")
+        print("="*60)
+
+        best_pt = weights_dir / "best.pt"
+        last_pt = weights_dir / "last.pt"
+
+        if best_pt.exists():
+            print(f"\n✓ Mejor modelo: {best_pt}")
+
+        if last_pt.exists():
+            print(f"✓ Último modelo: {last_pt}")
+
+    print("\n" + "="*60)
+
+    input("\nPresiona Enter para continuar...")
+
+
+def entrenar_modelo():
+    """Menú de entrenamiento del modelo"""
+    while True:
+        print_header("ENTRENAR MODELO")
+
+        print("\n1. Entrenar modelo")
+        print("2. Ver resultados del modelo")
+        print("3. Volver al menú principal")
+
+        opcion = input("\nSelecciona una opción (1-3): ").strip()
+
+        if opcion == "1":
+            ejecutar_entrenamiento()
+        elif opcion == "2":
+            ver_resultados_modelo()
+        elif opcion == "3":
+            break
+        else:
+            print("\nOpción no válida")
+            input("\nPresiona Enter para continuar...")
 
 
 def hacer_predicciones():
@@ -187,11 +326,26 @@ def reconocer_placas():
     print_header("RECONOCIMIENTO DE PLACAS (DETECCIÓN + OCR)")
 
     try:
-        # Configurar detector
-        exp_name = input("Nombre del experimento [exp1]: ").strip() or "exp1"
+        # Pedir nombre del experimento
+        exp_name = input("\nNombre del experimento [exp1]: ").strip() or "exp1"
 
-        use_easyocr_input = input("¿Usar EasyOCR como fallback? (s/n) [s]: ").strip().lower()
-        use_easyocr = use_easyocr_input != 'n'
+        # Mostrar opciones de OCR
+        print("\nEscoger modelo OCR:")
+        print("1. Usar EasyOCR")
+        print("2. Usar Tesseract")
+
+        ocr_opcion = input("\nSelecciona una opción (1-2): ").strip()
+
+        # Configurar según la opción
+        if ocr_opcion == "1":
+            use_easyocr = True
+            print("\n✓ Usando EasyOCR (con Tesseract como respaldo)")
+        elif ocr_opcion == "2":
+            use_easyocr = False
+            print("\n✓ Usando solo Tesseract")
+        else:
+            print("\nOpción no válida, usando EasyOCR por defecto")
+            use_easyocr = True
 
         print("\nInicializando detector...")
         detector = PlateDetectorOCR(
@@ -199,43 +353,124 @@ def reconocer_placas():
             use_easyocr=use_easyocr
         )
 
-        # Preguntar imagen
-        image_path = input("\nRuta a la imagen: ").strip()
+        # Preguntar si procesar imagen o carpeta
+        print("\n¿Qué deseas procesar?")
+        print("1. Una imagen")
+        print("2. Una carpeta completa")
 
-        if not image_path:
-            print("Debes especificar una imagen")
-            input("\nPresiona Enter para continuar...")
-            return
+        tipo_opcion = input("\nSelecciona una opción (1-2): ").strip()
 
-        if not Path(image_path).exists():
-            print(f"No se encontró: {image_path}")
-            input("\nPresiona Enter para continuar...")
-            return
+        if tipo_opcion == "1":
+            # Procesar una sola imagen
+            image_path = input("\nRuta a la imagen: ").strip()
 
-        # Reconocer
-        print("\nReconociendo placas...")
-        results = detector.recognize_plate_from_image(
-            image_path,
-            save_crops=True,
-            visualize=True
-        )
+            if not image_path:
+                print("Debes especificar una imagen")
+                input("\nPresiona Enter para continuar...")
+                return
 
-        # Resumen
-        print("\n" + "="*60)
-        print("RESUMEN FINAL")
-        print("="*60)
+            if not Path(image_path).exists():
+                print(f"No se encontró: {image_path}")
+                input("\nPresiona Enter para continuar...")
+                return
 
-        if not results:
-            print("No se detectaron placas en la imagen")
+            # Reconocer
+            print("\nReconociendo placas...")
+            results = detector.recognize_plate_from_image(
+                image_path,
+                save_crops=True,
+                visualize=True
+            )
+
+            # Resumen
+            print("\n" + "="*60)
+            print("RESUMEN FINAL")
+            print("="*60)
+
+            if not results:
+                print("No se detectaron placas en la imagen")
+            else:
+                print(f"\n✓ Detectadas {len(results)} placa(s):\n")
+                for i, res in enumerate(results):
+                    print(f"  {i+1}. Placa: {res['plate_clean']}")
+                    print(f"     Confianza: {res['confidence']:.2%}")
+                    print(f"     Método OCR: {res['method']}")
+                    print()
+
+            print("="*60)
+
+        elif tipo_opcion == "2":
+            # Procesar carpeta completa
+            folder_path = input("\nRuta a la carpeta: ").strip()
+
+            if not folder_path:
+                print("Debes especificar una carpeta")
+                input("\nPresiona Enter para continuar...")
+                return
+
+            folder_path = Path(folder_path)
+            if not folder_path.exists() or not folder_path.is_dir():
+                print(f"No se encontró la carpeta: {folder_path}")
+                input("\nPresiona Enter para continuar...")
+                return
+
+            # Obtener todas las imágenes de la carpeta
+            image_extensions = ['.jpg', '.jpeg', '.png', '.bmp', '.tiff']
+            image_files = []
+            for ext in image_extensions:
+                image_files.extend(folder_path.glob(f'*{ext}'))
+                image_files.extend(folder_path.glob(f'*{ext.upper()}'))
+
+            if not image_files:
+                print(f"\nNo se encontraron imágenes en: {folder_path}")
+                input("\nPresiona Enter para continuar...")
+                return
+
+            print(f"\n✓ Encontradas {len(image_files)} imágenes")
+            print("\nProcesando carpeta...")
+
+            all_results = []
+            for idx, img_path in enumerate(image_files, 1):
+                print(f"\n[{idx}/{len(image_files)}] Procesando: {img_path.name}")
+                try:
+                    results = detector.recognize_plate_from_image(
+                        str(img_path),
+                        save_crops=True,
+                        visualize=False  # No mostrar detalles para cada imagen
+                    )
+
+                    if results:
+                        for res in results:
+                            res['image_file'] = img_path.name
+                            all_results.append(res)
+                        print(f"  ✓ {len(results)} placa(s) detectada(s)")
+                    else:
+                        print(f"  - No se detectaron placas")
+
+                except Exception as e:
+                    print(f"  ✗ Error: {e}")
+
+            # Resumen final
+            print("\n" + "="*60)
+            print("RESUMEN FINAL - CARPETA COMPLETA")
+            print("="*60)
+            print(f"\nImágenes procesadas: {len(image_files)}")
+            print(f"Total de placas detectadas: {len(all_results)}")
+
+            if all_results:
+                print("\n" + "-"*60)
+                print("DETALLE DE PLACAS:")
+                print("-"*60)
+                for i, res in enumerate(all_results, 1):
+                    print(f"\n{i}. Archivo: {res['image_file']}")
+                    print(f"   Placa: {res['plate_clean']}")
+                    print(f"   Confianza: {res['confidence']:.2%}")
+                    print(f"   Método OCR: {res['method']}")
+
+            print("\n" + "="*60)
+
         else:
-            print(f"\n✓ Detectadas {len(results)} placa(s):\n")
-            for i, res in enumerate(results):
-                print(f"  {i+1}. Placa: {res['plate_clean']}")
-                print(f"     Confianza: {res['confidence']:.2%}")
-                print(f"     Método OCR: {res['method']}")
-                print()
-
-        print("="*60)
+            print("\nOpción no válida")
 
     except FileNotFoundError as e:
         print(f"\n{e}")
