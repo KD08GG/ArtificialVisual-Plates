@@ -1,188 +1,216 @@
 # ArtificialVisual-Plates
 
-## Sistema de Detección y Reconocimiento Automático de Placas Vehiculares Mexicanas
+## Automatic License Plate Recognition System for Mexican Vehicles
 
-### Proyecto de Visión Artificial con Deep Learning
-
----
-
-## Descripción General
-
-Este proyecto implementa un sistema completo de reconocimiento automático de placas vehiculares mexicanas (Automatic License Plate Recognition - ALPR) utilizando técnicas de visión artificial y aprendizaje profundo. El sistema permite cargar imágenes de vehículos y extraer automáticamente el texto de las placas vehiculares con alta precisión.
-
-El proyecto combina:
-- **YOLOv8** (You Only Look Once v8) para la detección de placas en imágenes
-- **Múltiples motores OCR** (Optical Character Recognition) para la extracción de texto
-- **Preprocesamiento optimizado** de imágenes con OpenCV
-- **Validación inteligente** de formato de placas mexicanas
+### Computer Vision Project with Deep Learning
 
 ---
 
-## Características Principales
+## Overview
 
-### 1. Detección de Placas
-- Modelo YOLOv8 entrenado con dataset personalizado
-- División de datos: 70% entrenamiento, 20% validación, 10% prueba
-- Detección en tiempo real con confianza ajustable
-- Recorte automático de regiones de interés (ROI)
+This project implements a complete Automatic License Plate Recognition (ALPR) system for Mexican vehicle plates using computer vision and deep learning techniques. The system allows users to upload vehicle images and automatically extract license plate text with high accuracy.
 
-### 2. Reconocimiento de Texto (OCR)
-- Sistema híbrido con múltiples motores OCR
-- **EasyOCR**: Motor principal (mejor rendimiento)
-- **Tesseract OCR**: Motor secundario de respaldo
-- Sistema de fallback inteligente entre motores
-- Preprocesamiento optimizado para mejorar precisión
-
-### 3. Preprocesamiento de Imágenes
-Después de extensas pruebas, se determinó que un preprocesamiento minimalista ofrece mejores resultados:
-- Redimensionamiento estándar (altura: 180px)
-- Recorte estratégico (región central de la placa)
-- Filtro Gaussiano ligero (3x3)
-- Binarización mediante threshold de Otsu
-
-**Nota importante**: Se probaron múltiples filtros adicionales (CLAHE, bilateral filter, unsharp mask, operaciones morfológicas), pero estos **saturaban la imagen** y **deterioraban los resultados**. El enfoque minimalista actual proporciona el mejor balance entre procesamiento y precisión.
-
-### 4. Validación y Corrección
-- Validación de formato mexicano: AAA-999-A (3 letras, 3 números, 1 letra)
-- Corrección automática de errores comunes del OCR
-- Sistema de sustituciones inteligentes (letras que parecen números y viceversa)
-- Extracción mediante expresiones regulares
+The project combines:
+- **YOLOv8** (You Only Look Once v8) for license plate detection in images
+- **Multiple OCR engines** (Optical Character Recognition) for text extraction
+- **Optimized image preprocessing** with OpenCV
+- **Intelligent validation** for Mexican plate format
 
 ---
 
-## Arquitectura del Sistema
+## Key Features
 
-### Pipeline de Procesamiento
+### 1. License Plate Detection
+- YOLOv8 model trained with custom dataset
+- Data split: 70% training, 20% validation, 10% testing
+- Real-time detection with adjustable confidence
+- Automatic region of interest (ROI) cropping
+
+### 2. Text Recognition (OCR)
+- Hybrid system with multiple OCR engines
+- **EasyOCR**: Primary engine (best performance)
+- **Tesseract OCR**: Secondary backup engine
+- Intelligent fallback system between engines
+- Optimized preprocessing to improve accuracy
+
+### 3. Image Preprocessing
+After extensive testing, it was determined that minimalist preprocessing offers better results:
+- Standard resizing (height: 180px)
+- Strategic cropping (central plate region)
+- Light Gaussian filter (3x3)
+- Binarization using Otsu's threshold
+
+**Important note**: Multiple additional filters were tested (CLAHE, bilateral filter, unsharp mask, morphological operations), but these **saturated the image** and **degraded the results**. The current minimalist approach provides the best balance between processing and accuracy.
+
+### 4. Validation and Correction
+- Mexican format validation: AAA-999-A (3 letters, 3 digits, 1 letter)
+- Automatic correction of common OCR errors
+- Intelligent substitution system (letters that look like numbers and vice versa)
+- Extraction using regular expressions
+
+---
+
+## System Architecture
+
+### Processing Pipeline
 
 ```
-Imagen de entrada
+Input Image
     ↓
-[YOLOv8] Detección de placa
+[YOLOv8] Plate Detection
     ↓
-Recorte de ROI
+ROI Cropping
     ↓
-Preprocesamiento optimizado
+Optimized Preprocessing
     ↓
-[EasyOCR] Reconocimiento primario
+[EasyOCR] Primary Recognition
     ↓
-¿Texto válido? → No → [Tesseract OCR] Fallback
-    ↓ Sí
-Validación de patrón (AAA-999-A)
+Valid Text? → No → [Tesseract OCR] Fallback
+    ↓ Yes
+Pattern Validation (AAA-999-A)
     ↓
-¿Coincide? → No → Corrección forzada
-    ↓ Sí
-Texto de placa validado
+Match? → No → Forced Correction
+    ↓ Yes
+Validated Plate Text
 ```
 
-### Componentes del Sistema
+### System Components
 
-**Módulo de Detección (YOLOv8)**
-- Arquitectura: YOLOv8n (nano) - versión ligera y rápida
-- Input: Imágenes RGB de 640x640 píxeles
-- Output: Bounding boxes con coordenadas (x1, y1, x2, y2) y confianza
+**Detection Module (YOLOv8)**
+- Architecture: YOLOv8n (nano) - lightweight and fast version
+- Input: RGB images of 640x640 pixels
+- Output: Bounding boxes with coordinates (x1, y1, x2, y2) and confidence
 
-**Módulo de Preprocesamiento**
-- Redimensionamiento proporcional
-- Recorte vertical: 20%-80% (elimina bordes superior e inferior)
-- Recorte horizontal: 10%-90% (elimina marcos laterales)
-- Suavizado Gaussiano: kernel 3x3
-- Binarización automática: método de Otsu
+**Preprocessing Module**
+- Proportional resizing
+- Vertical crop: 20%-80% (removes top and bottom edges)
+- Horizontal crop: 10%-90% (removes side frames)
+- Gaussian smoothing: 3x3 kernel
+- Automatic binarization: Otsu's method
 
-**Módulo OCR Híbrido**
-- Motor 1: EasyOCR con idioma español
-- Motor 2: Tesseract OCR con PSM 8 (palabra única)
-- Estrategia de selección: prioridad a EasyOCR, Tesseract como respaldo
-- Post-procesamiento de texto: limpieza y normalización
+**Hybrid OCR Module**
+- Engine 1: EasyOCR with Spanish language
+- Engine 2: Tesseract OCR with PSM 8 (single word)
+- Selection strategy: priority to EasyOCR, Tesseract as backup
+- Text post-processing: cleaning and normalization
 
-**Módulo de Validación**
-- Patrón regex: `([A-Z]{3})[-\s]?(\d{3})[-\s]?([A-Z])`
-- Mapeo de caracteres ambiguos: O/0, I/1, S/5, etc.
-- Aplicación posicional: letras en posiciones 0,1,2,6 y números en 3,4,5
+**Validation Module**
+- Regex pattern: `([A-Z]{3})[-\s]?(\d{3})[-\s]?([A-Z])`
+- Ambiguous character mapping: O/0, I/1, S/5, etc.
+- Positional application: letters in positions 0,1,2,6 and numbers in 3,4,5
 
 ---
 
-## Estructura del Proyecto
+## Project Structure
 
 ```
 ArtificialVisual-Plates/
 ├── src/
-│   ├── config.py                  # Configuración global del proyecto
-│   ├── setup_dataset.py           # Preparación y validación del dataset
-│   ├── train.py                   # Entrenamiento del modelo YOLOv8
-│   ├── predict.py                 # Predicciones (solo detección)
-│   ├── ocr_plate_detector.py      # Sistema completo de detección + OCR
-│   └── main.py                    # Interfaz interactiva unificada
+│   ├── config.py                  # Global project configuration
+│   ├── setup_dataset.py           # Dataset preparation and validation
+│   ├── train.py                   # YOLOv8 model training
+│   ├── predict.py                 # Predictions (detection only)
+│   ├── ocr_plate_detector.py      # Complete detection + OCR system
+│   └── main.py                    # Unified interactive interface
 ├── data/
-│   └── dataset/                   # Dataset en formato YOLOv8
-│       ├── train/                 # 70% - Imágenes de entrenamiento
-│       ├── valid/                 # 20% - Imágenes de validación
-│       └── test/                  # 10% - Imágenes de prueba
-├── models/                        # Modelos preentrenados
-├── results/                       # Resultados de inferencia
-│   ├── predictions/               # Imágenes con detecciones visualizadas
-│   └── crops/                     # Recortes de placas detectadas
-├── test_images/                   # Imágenes de prueba
-├── alpr_train/                    # Resultados de entrenamiento
+│   └── dataset/                   # Dataset in YOLOv8 format
+│       ├── train/                 # 70% - Training images
+│       ├── valid/                 # 20% - Validation images
+│       └── test/                  # 10% - Test images
+├── models/                        # Pretrained models
+├── results/                       # Inference results
+│   ├── predictions/               # Images with visualized detections
+│   └── crops/                     # Detected plate crops
+├── test_images/                   # Test images
+├── alpr_train/                    # Training results
 │   └── exp1/
 │       ├── weights/
-│       │   ├── best.pt            # Mejor modelo (mayor mAP)
-│       │   └── last.pt            # Último checkpoint
-│       ├── results.png            # Curvas de entrenamiento
-│       ├── confusion_matrix.png   # Matriz de confusión
-│       └── results.csv            # Métricas por época
-├── requirements.txt               # Dependencias del proyecto
-├── Placas.v1i.yolov8.zip         # Dataset original
-└── README.md                      # Este archivo
+│       │   ├── best.pt            # Best model (highest mAP)
+│       │   └── last.pt            # Last checkpoint
+│       ├── results.png            # Training curves
+│       ├── confusion_matrix.png   # Confusion matrix
+│       └── results.csv            # Metrics per epoch
+├── requirements.txt               # Project dependencies
+├── Placas.v1i.yolov8.zip         # Original dataset
+└── README.md                      # This file
 ```
 
 ---
 
-## Requisitos del Sistema
+## System Requirements
 
 ### Software
-- Python 3.8 o superior
-- pip (gestor de paquetes)
-- Tesseract OCR 4.0 o superior
-- (Opcional) CUDA 11.0+ para aceleración GPU
+- Python 3.8 or higher
+- pip (package manager)
+- Tesseract OCR 4.0 or higher
+- (Optional) CUDA 11.0+ for GPU acceleration
+- Visual Studio Code (recommended IDE)
 
 ### Hardware
-**Mínimo:**
-- CPU: Intel Core i5 o equivalente
+**Minimum:**
+- CPU: Intel Core i5 or equivalent
 - RAM: 8 GB
-- Almacenamiento: 5 GB libres
+- Storage: 5 GB free
 
-**Recomendado:**
-- CPU: Intel Core i7 o equivalente
+**Recommended:**
+- CPU: Intel Core i7 or equivalent
 - RAM: 16 GB
-- GPU: NVIDIA con 4GB VRAM (para entrenamiento)
-- Almacenamiento: 10 GB libres
+- GPU: NVIDIA with 4GB VRAM (for training)
+- Storage: 10 GB free
 
-### Dependencias de Python
+### Python Dependencies
 ```
 ultralytics>=8.0.0        # YOLOv8
 torch>=2.0.0              # PyTorch
-torchvision>=0.15.0       # Utilidades de visión
+torchvision>=0.15.0       # Vision utilities
 pytesseract>=0.3.10       # Tesseract OCR
 easyocr>=1.7.0            # EasyOCR
 opencv-python>=4.8.0      # OpenCV
-Pillow>=10.0.0            # Procesamiento de imágenes
-numpy>=1.24.0             # Operaciones numéricas
-matplotlib>=3.7.0         # Visualización
-pyyaml>=6.0               # Configuración YAML
+Pillow>=10.0.0            # Image processing
+numpy>=1.24.0             # Numerical operations
+matplotlib>=3.7.0         # Visualization
+pyyaml>=6.0               # YAML configuration
 ```
 
 ---
 
-## Instalación
+## Development Environment
 
-### 1. Clonar el Repositorio
+This project was developed using the following hardware and software:
+
+### Development Hardware Specifications
+```
+Model:          ASUS TUF Gaming FX506LHB
+Processor:      Intel(R) Core(TM) i5-10300H CPU @ 2.50GHz
+RAM:            8.00 GB (7.84 GB usable)
+RAM Speed:      2933 MT/s
+Storage:        477 GB (332 GB used)
+Graphics Card:  Multiple GPUs (4 GB)
+System Type:    64-bit operating system, x64-based processor
+```
+
+### Development Software
+```
+IDE:            Visual Studio Code
+OS:             Windows 10/11 64-bit
+Python:         3.8+
+Git:            Version control
+```
+
+**Note**: The system was optimized to run efficiently on this mid-range gaming laptop, making it accessible for developers with similar hardware configurations.
+
+---
+
+## Installation
+
+### 1. Clone the Repository
 
 ```bash
 git clone https://github.com/KD08GG/ArtificialVisual-Plates.git
 cd ArtificialVisual-Plates
 ```
 
-### 2. Crear Entorno Virtual
+### 2. Create Virtual Environment
 
 ```bash
 # Windows
@@ -194,19 +222,19 @@ python3 -m venv venv
 source venv/bin/activate
 ```
 
-### 3. Instalar Dependencias de Python
+### 3. Install Python Dependencies
 
 ```bash
 pip install --upgrade pip
 pip install -r requirements.txt
 ```
 
-### 4. Instalar Tesseract OCR
+### 4. Install Tesseract OCR
 
 #### Windows:
-1. Descargar instalador: https://github.com/UB-Mannheim/tesseract/wiki
-2. Ejecutar instalador y añadir a PATH del sistema
-3. Verificar instalación: `tesseract --version`
+1. Download from: https://github.com/UB-Mannheim/tesseract/wiki
+2. Run installer and add to system PATH
+3. Verify installation: `tesseract --version`
 
 #### Linux (Ubuntu/Debian):
 ```bash
@@ -219,18 +247,18 @@ sudo apt install tesseract-ocr libtesseract-dev
 brew install tesseract
 ```
 
-### 5. Configurar Ruta de Tesseract
+### 5. Configure Tesseract Path
 
-Editar `src/ocr_plate_detector.py` línea 27 con la ruta correcta:
+Edit `src/ocr_plate_detector.py` line 27 with the correct path:
 
 ```python
 # Windows
 pytesseract.pytesseract.tesseract_cmd = r'C:\Program Files\Tesseract-OCR\tesseract.exe'
 
-# Linux/macOS (usualmente no requiere configuración)
+# Linux/macOS (usually doesn't require configuration)
 ```
 
-### 6. Verificar Instalación
+### 6. Verify Installation
 
 ```bash
 python -c "import torch; print('PyTorch:', torch.__version__)"
@@ -241,264 +269,264 @@ python -c "import easyocr; print('EasyOCR: OK')"
 
 ---
 
-## Uso del Sistema
+## Usage
 
-### Modo Interactivo (Recomendado)
+### Interactive Mode (Recommended)
 
 ```bash
 python src/main.py
 ```
 
-El menú interactivo permite:
-1. Configurar y verificar dataset
-2. Entrenar modelo YOLOv8
-3. Realizar predicciones (solo detección)
-4. Reconocer placas completas (detección + OCR)
+The interactive menu allows:
+1. Configure and verify dataset
+2. Train YOLOv8 model
+3. Make predictions (detection only)
+4. Recognize complete plates (detection + OCR)
 
-### Modo Línea de Comandos
+### Command Line Mode
 
-#### 1. Preparación del Dataset
+#### 1. Dataset Preparation
 
 ```bash
-# Descomprimir dataset descargado de Roboflow
+# Decompress dataset downloaded from Roboflow
 python src/setup_dataset.py --zip Placas.v1i.yolov8.zip
 
-# Verificar estructura del dataset
+# Verify dataset structure
 python src/setup_dataset.py --verify-only
 ```
 
-#### 2. Entrenamiento del Modelo
+#### 2. Model Training
 
 ```bash
-# Entrenamiento básico (50 épocas, batch 8, CPU)
+# Basic training (50 epochs, batch 8, CPU)
 python src/train.py
 
-# Entrenamiento personalizado
+# Custom training
 python src/train.py --epochs 100 --batch 16 --device 0 --name exp2
 
-# Continuar entrenamiento previo
+# Resume previous training
 python src/train.py --resume --name exp1
 
-# Ver todas las opciones
+# See all options
 python src/train.py --help
 ```
 
-#### 3. Detección de Placas (Solo Bounding Boxes)
+#### 3. Plate Detection (Bounding Boxes Only)
 
 ```bash
-# Detectar en una imagen
+# Detect in single image
 python src/predict.py --source test_images/placa1.jpg
 
-# Detectar en carpeta completa
+# Detect in entire folder
 python src/predict.py --source test_images/ --conf 0.5
 
-# Usar modelo específico
-python src/predict.py --source imagen.jpg --experiment exp2
+# Use specific model
+python src/predict.py --source image.jpg --experiment exp2
 ```
 
-#### 4. Reconocimiento Completo (Detección + OCR)
+#### 4. Complete Recognition (Detection + OCR)
 
 ```bash
-# Reconocer placa en imagen individual
+# Recognize plate in single image
 python src/ocr_plate_detector.py --image test_images/placa1.jpg
 
-# Usar solo Tesseract (sin EasyOCR)
-python src/ocr_plate_detector.py --image placa.jpg --no-easyocr
+# Use only Tesseract (without EasyOCR)
+python src/ocr_plate_detector.py --image plate.jpg --no-easyocr
 
-# Usar experimento específico
-python src/ocr_plate_detector.py --image placa.jpg --experiment exp2
+# Use specific experiment
+python src/ocr_plate_detector.py --image plate.jpg --experiment exp2
 
-# No guardar recortes
-python src/ocr_plate_detector.py --image placa.jpg --no-save
+# Don't save crops
+python src/ocr_plate_detector.py --image plate.jpg --no-save
 ```
 
 ---
 
-## Configuración Avanzada
+## Advanced Configuration
 
-### Archivo `src/config.py`
+### `src/config.py` File
 
-#### Parámetros de Entrenamiento
+#### Training Parameters
 
 ```python
 TRAINING_CONFIG = {
-    "epochs": 50,           # Número de épocas
-    "imgsz": 640,           # Tamaño de imagen (píxeles)
-    "batch": 8,             # Tamaño de lote
-    "patience": 10,         # Early stopping (épocas sin mejora)
-    "device": "cpu",        # "cpu" o "0" para GPU
+    "epochs": 50,           # Number of epochs
+    "imgsz": 640,           # Image size (pixels)
+    "batch": 8,             # Batch size
+    "patience": 10,         # Early stopping (epochs without improvement)
+    "device": "cpu",        # "cpu" or "0" for GPU
 }
 ```
 
-#### Parámetros de Detección
+#### Detection Parameters
 
 ```python
 PREDICTION_CONFIG = {
-    "conf": 0.5,            # Confianza mínima (0.0-1.0)
-    "iou": 0.5,             # Umbral de IoU para NMS
-    "imgsz": 640,           # Tamaño de entrada
+    "conf": 0.5,            # Minimum confidence (0.0-1.0)
+    "iou": 0.5,             # IoU threshold for NMS
+    "imgsz": 640,           # Input size
 }
 ```
 
-#### Parámetros de OCR
+#### OCR Parameters
 
 ```python
 OCR_CONFIG = {
-    "detection_conf": 0.35,      # Umbral de confianza para YOLO
-    "detection_iou": 0.5,        # Umbral de IoU
-    "target_height": 160,        # Altura de recorte para OCR
-    "save_crops": True,          # Guardar recortes de placas
-    "visualize": True,           # Mostrar resultados en consola
+    "detection_conf": 0.35,      # Confidence threshold for YOLO
+    "detection_iou": 0.5,        # IoU threshold
+    "target_height": 160,        # Crop height for OCR
+    "save_crops": True,          # Save plate crops
+    "visualize": True,           # Show results in console
 }
 
-# Tesseract: PSM 8 (palabra única), OEM 3 (LSTM)
+# Tesseract: PSM 8 (single word), OEM 3 (LSTM)
 TESSERACT_CONFIG = r'--oem 3 --psm 8 -c tessedit_char_whitelist=ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789-'
 
-# EasyOCR: idioma español, sin GPU
+# EasyOCR: Spanish language, no GPU
 EASYOCR_CONFIG = {
     "languages": ['es'],
-    "gpu": False,           # Cambiar a True si hay GPU compatible
+    "gpu": False,           # Change to True if GPU compatible
 }
 ```
 
 ---
 
-## Experimentos y Resultados
+## Experiments and Results
 
-### Comparativa de Motores OCR
+### OCR Engine Comparison
 
-Durante el desarrollo se evaluaron tres motores OCR:
+Three OCR engines were evaluated during development:
 
-| Motor OCR | Precisión | Velocidad | Robustez | Resultado |
+| OCR Engine | Accuracy | Speed | Robustness | Result |
 |-----------|-----------|-----------|----------|-----------|
-| **EasyOCR** | Alta | Media | Excelente | Seleccionado como motor principal |
-| **Tesseract** | Media-Alta | Rápida | Buena | Motor de respaldo |
-| **PaddleOCR** | Baja | Rápida | Deficiente | Descartado |
+| **EasyOCR** | High | Medium | Excellent | Selected as primary engine |
+| **Tesseract** | Medium-High | Fast | Good | Backup engine |
+| **PaddleOCR** | Low | Fast | Poor | Discarded |
 
-**Conclusión**: EasyOCR demostró ser el motor más confiable para placas mexicanas, especialmente en condiciones de iluminación variable y ángulos no ideales. Tesseract se mantiene como respaldo efectivo para casos simples.
+**Conclusion**: EasyOCR proved to be the most reliable engine for Mexican plates, especially under variable lighting conditions and non-ideal angles. Tesseract remains as an effective backup for simple cases.
 
-### Evaluación de Preprocesamiento
+### Preprocessing Evaluation
 
-Se compararon múltiples estrategias de preprocesamiento:
+Multiple preprocessing strategies were compared:
 
-**Estrategia 1: Preprocesamiento Intensivo (Descartada)**
+**Strategy 1: Intensive Preprocessing (Discarded)**
 - CLAHE (Contrast Limited Adaptive Histogram Equalization)
 - Bilateral Filter
 - Unsharp Mask (sharpening)
-- Operaciones morfológicas
-- **Resultado**: Saturación de imagen, peor rendimiento OCR
+- Morphological operations
+- **Result**: Image saturation, worse OCR performance
 
-**Estrategia 2: Preprocesamiento Minimalista (Seleccionada)**
-- Recorte estratégico de región central
-- Gaussian Blur ligero (3x3)
-- Binarización adaptativa (Otsu)
-- **Resultado**: Mejor balance precisión/velocidad
+**Strategy 2: Minimalist Preprocessing (Selected)**
+- Strategic cropping of central region
+- Light Gaussian Blur (3x3)
+- Adaptive binarization (Otsu)
+- **Result**: Best balance of accuracy/speed
 
-**Métricas de comparación**:
+**Comparison metrics**:
 ```
-Estrategia Intensiva:  67% precisión OCR
-Estrategia Minimalista: 89% precisión OCR
+Intensive Strategy:  67% OCR accuracy
+Minimalist Strategy: 89% OCR accuracy
 ```
 
-### División del Dataset
+### Dataset Split
 
 ```
-Total de imágenes: 100%
-├── Entrenamiento: 70% (aprox. 70 imágenes)
-├── Validación:    20% (aprox. 20 imágenes)
-└── Prueba:        10% (aprox. 10 imágenes)
+Total images: 100%
+├── Training:   70% (~70 images)
+├── Validation: 20% (~20 images)
+└── Test:       10% (~10 images)
 ```
 
 ---
 
-## Estado Actual del Proyecto
+## Current Project Status
 
-### Funcionalidades Implementadas
+### Implemented Features
 
-- Sistema completo de carga y procesamiento de imágenes
-- Detección precisa de placas con YOLOv8
-- Reconocimiento de texto con doble motor OCR
-- Validación automática de formato mexicano
-- Interfaz de línea de comandos intuitiva
-- Guardado automático de resultados y recortes
-- Sistema de configuración flexible
+- Complete image loading and processing system
+- Accurate plate detection with YOLOv8
+- Text recognition with dual OCR engine
+- Automatic Mexican format validation
+- Intuitive command-line interface
+- Automatic saving of results and crops
+- Flexible configuration system
 
-### Funcionalidades Propuestas (Segunda Fase)
+### Proposed Features (Second Phase)
 
-El proyecto contempla como extensión futura:
+The project contemplates as a future extension:
 
-1. **Interfaz Gráfica de Usuario (GUI)**
-   - Ventana de carga de imágenes mediante drag-and-drop
-   - Visualización en tiempo real de detecciones
-   - Panel de configuración de parámetros
+1. **Graphical User Interface (GUI)**
+   - Image loading window with drag-and-drop
+   - Real-time detection visualization
+   - Parameter configuration panel
 
-2. **Detección en Video con Cámara en Vivo**
-   - Procesamiento de stream de video
-   - Detección cuadro por cuadro
-   - Tracking de placas entre frames
-   - Integración con cámaras web o IP
+2. **Video Detection with Live Camera**
+   - Video stream processing
+   - Frame-by-frame detection
+   - Plate tracking between frames
+   - Integration with web or IP cameras
 
-3. **Sistema de Reportes**
-   - Exportación de resultados a CSV/JSON
-   - Generación de reportes PDF con imágenes
-   - Historial de detecciones
+3. **Reporting System**
+   - Export results to CSV/JSON
+   - PDF report generation with images
+   - Detection history
 
 ---
 
-## Solución de Problemas
+## Troubleshooting
 
 ### Error: "No module named 'pytesseract'"
 
-**Solución:**
+**Solution:**
 ```bash
 pip install pytesseract
 ```
 
 ### Error: "Tesseract is not installed or not in PATH"
 
-**Solución:**
-1. Verificar instalación: `tesseract --version`
-2. Si no está instalado, seguir pasos de instalación según SO
-3. Configurar ruta en `src/ocr_plate_detector.py` línea 27
+**Solution:**
+1. Verify installation: `tesseract --version`
+2. If not installed, follow installation steps according to OS
+3. Configure path in `src/ocr_plate_detector.py` line 27
 
 ### Error: "CUDA out of memory"
 
-**Solución:**
+**Solution:**
 ```bash
-# Reducir tamaño de batch
+# Reduce batch size
 python src/train.py --batch 4
 
-# O usar CPU
+# Or use CPU
 python src/train.py --device cpu
 ```
 
-### Las detecciones son incorrectas
+### Detections are incorrect
 
-**Solución:**
-1. Verificar que el modelo esté entrenado
-2. Ajustar umbral de confianza:
+**Solution:**
+1. Verify that the model is trained
+2. Adjust confidence threshold:
    ```bash
-   python src/predict.py --source imagen.jpg --conf 0.3
+   python src/predict.py --source image.jpg --conf 0.3
    ```
-3. Revisar calidad y resolución de imágenes de entrada
+3. Check quality and resolution of input images
 
-### OCR no reconoce texto correctamente
+### OCR doesn't recognize text correctly
 
-**Solución:**
-1. Verificar instalación de Tesseract: `tesseract --version`
-2. Comprobar que EasyOCR esté instalado: `pip show easyocr`
-3. Revisar recortes guardados en `results/crops/` para diagnosticar
-4. Ajustar parámetros de preprocesamiento en `config.py`
-5. Verificar que la placa esté dentro del formato mexicano (AAA-999-A)
+**Solution:**
+1. Verify Tesseract installation: `tesseract --version`
+2. Check that EasyOCR is installed: `pip show easyocr`
+3. Review saved crops in `results/crops/` for diagnosis
+4. Adjust preprocessing parameters in `config.py`
+5. Verify that the plate is within Mexican format (AAA-999-A)
 
-### EasyOCR muy lento en CPU
+### EasyOCR very slow on CPU
 
-**Solución:**
+**Solution:**
 ```bash
-# Usar solo Tesseract
-python src/ocr_plate_detector.py --image placa.jpg --no-easyocr
+# Use only Tesseract
+python src/ocr_plate_detector.py --image plate.jpg --no-easyocr
 
-# O habilitar GPU en config.py
+# Or enable GPU in config.py
 EASYOCR_CONFIG = {
     "gpu": True,
 }
@@ -506,125 +534,125 @@ EASYOCR_CONFIG = {
 
 ---
 
-## Metodología de Desarrollo
+## Development Methodology
 
-### 1. Obtención de Datos
-- Fuente: Roboflow (dataset público de placas mexicanas)
-- Formato: YOLOv8 (imágenes + anotaciones en formato YOLO)
-- División automática: 70/20/10
+### 1. Data Acquisition
+- Source: Roboflow (public Mexican plates dataset)
+- Format: YOLOv8 (images + annotations in YOLO format)
+- Automatic split: 70/20/10
 
-### 2. Entrenamiento
-- Modelo base: YOLOv8n (nano) preentrenado en COCO
-- Transfer learning: fine-tuning en dataset de placas
-- Métricas monitoreadas: mAP50, mAP50-95, precision, recall, loss
+### 2. Training
+- Base model: YOLOv8n (nano) pretrained on COCO
+- Transfer learning: fine-tuning on plates dataset
+- Monitored metrics: mAP50, mAP50-95, precision, recall, loss
 
-### 3. Optimización de OCR
-- Evaluación empírica de múltiples configuraciones
-- A/B testing de estrategias de preprocesamiento
-- Selección basada en métricas cuantitativas
+### 3. OCR Optimization
+- Empirical evaluation of multiple configurations
+- A/B testing of preprocessing strategies
+- Selection based on quantitative metrics
 
-### 4. Validación
-- Pruebas con conjunto de test independiente (10%)
-- Evaluación manual de casos difíciles
-- Ajuste fino de umbrales de confianza
+### 4. Validation
+- Testing with independent test set (10%)
+- Manual evaluation of difficult cases
+- Fine-tuning of confidence thresholds
 
 ---
 
-## Métricas de Evaluación
+## Evaluation Metrics
 
-### Detección (YOLOv8)
+### Detection (YOLOv8)
 
 ```
-mAP50: Mean Average Precision al 50% IoU
-mAP50-95: mAP promediado desde 50% hasta 95% IoU
+mAP50: Mean Average Precision at 50% IoU
+mAP50-95: mAP averaged from 50% to 95% IoU
 Precision: TP / (TP + FP)
 Recall: TP / (TP + FN)
 ```
 
-### Reconocimiento (OCR)
+### Recognition (OCR)
 
 ```
-Character Accuracy: Caracteres correctos / Total caracteres
-Plate Accuracy: Placas completamente correctas / Total placas
-Format Validation Rate: Placas con formato válido / Total detectadas
+Character Accuracy: Correct characters / Total characters
+Plate Accuracy: Completely correct plates / Total plates
+Format Validation Rate: Plates with valid format / Total detected
 ```
 
 ---
 
-## Limitaciones Conocidas
+## Known Limitations
 
-1. **Formato de placas**: El sistema está optimizado para placas mexicanas con formato AAA-999-A. Otros formatos requieren ajustes en las expresiones regulares.
+1. **Plate format**: The system is optimized for Mexican plates with AAA-999-A format. Other formats require adjustments to regular expressions.
 
-2. **Condiciones de iluminación**: Aunque robusto, el sistema puede tener dificultades con:
-   - Subexposición severa (placas muy oscuras)
-   - Sobreexposición con reflejos intensos
-   - Sombras parciales sobre la placa
+2. **Lighting conditions**: Although robust, the system may have difficulties with:
+   - Severe underexposure (very dark plates)
+   - Overexposure with intense reflections
+   - Partial shadows on the plate
 
-3. **Ángulo de captura**: Mejor rendimiento con placas frontales. Ángulos mayores a 45° pueden reducir precisión.
+3. **Capture angle**: Best performance with frontal plates. Angles greater than 45° may reduce accuracy.
 
-4. **Resolución**: Se recomienda que la placa ocupe al menos 80x40 píxeles en la imagen original.
+4. **Resolution**: It is recommended that the plate occupies at least 80x40 pixels in the original image.
 
-5. **Placas deterioradas**: Placas con daño físico significativo, pintura desprendida o texto ilegible pueden no reconocerse correctamente.
-
----
-
-## Contribuciones
-
-Este proyecto es de código abierto y acepta contribuciones. Áreas de interés:
-
-- Mejoras en preprocesamiento de imágenes
-- Soporte para otros formatos de placas (internacionales)
-- Optimización de velocidad de inferencia
-- Implementación de la interfaz gráfica
-- Documentación y tutoriales
-
-### Proceso de Contribución
-
-1. Fork del repositorio
-2. Crear rama de feature: `git checkout -b feature/nueva-funcionalidad`
-3. Commit de cambios: `git commit -am 'Agregar nueva funcionalidad'`
-4. Push a la rama: `git push origin feature/nueva-funcionalidad`
-5. Crear Pull Request
+5. **Deteriorated plates**: Plates with significant physical damage, peeling paint, or illegible text may not be recognized correctly.
 
 ---
 
-## Licencia
+## Contributions
 
-Este proyecto se distribuye bajo licencia MIT. Ver archivo `LICENSE` para más detalles.
+This project is open source and accepts contributions. Areas of interest:
+
+- Image preprocessing improvements
+- Support for other plate formats (international)
+- Inference speed optimization
+- Graphical interface implementation
+- Documentation and tutorials
+
+### Contribution Process
+
+1. Fork the repository
+2. Create feature branch: `git checkout -b feature/new-functionality`
+3. Commit changes: `git commit -am 'Add new functionality'`
+4. Push to branch: `git push origin feature/new-functionality`
+5. Create Pull Request
 
 ---
 
-## Referencias
+## License
 
-### Frameworks y Librerías
+This project is distributed under the MIT License. See `LICENSE` file for more details.
+
+---
+
+## References
+
+### Frameworks and Libraries
 
 - **Ultralytics YOLOv8**: Jocher, G. et al. (2023). Ultralytics YOLOv8. https://github.com/ultralytics/ultralytics
 - **Tesseract OCR**: Smith, R. (2007). An Overview of the Tesseract OCR Engine. https://github.com/tesseract-ocr/tesseract
 - **EasyOCR**: JaidedAI. (2020). EasyOCR: Ready-to-use OCR. https://github.com/JaidedAI/EasyOCR
 - **OpenCV**: Bradski, G. (2000). The OpenCV Library. https://opencv.org/
 
-### Artículos Científicos
+### Scientific Articles
 
 - Redmon, J., et al. (2016). "You Only Look Once: Unified, Real-Time Object Detection." CVPR 2016.
 - Otsu, N. (1979). "A Threshold Selection Method from Gray-Level Histograms." IEEE Trans. Systems, Man, and Cybernetics.
 
 ---
 
-## Autor
+## Author
 
-Desarrollado como proyecto académico de Visión Artificial.
+Developed as an academic Computer Vision project.
 
-**Repositorio**: https://github.com/KD08GG/ArtificialVisual-Plates
-
----
-
-## Contacto y Soporte
-
-Para preguntas, sugerencias o reportar problemas:
-- Abrir un issue en GitHub
-- Incluir información detallada del error
-- Adjuntar logs y capturas de pantalla si es posible
+**Repository**: https://github.com/KD08GG/ArtificialVisual-Plates
 
 ---
 
-**Última actualización**: Noviembre 2024
+## Contact and Support
+
+For questions, suggestions, or to report issues:
+- Open an issue on GitHub
+- Include detailed error information
+- Attach logs and screenshots if possible
+
+---
+
+**Last updated**: November 2024
