@@ -40,6 +40,7 @@ After extensive testing, it was determined that minimalist preprocessing offers 
 
 ### 4. Validation and Correction
 - Mexican format validation: AAA-999-A (3 letters, 3 digits, 1 letter)
+- Format based on NORMA Oficial Mexicana NOM-001-SCT-2-2016
 - Automatic correction of common OCR errors
 - Intelligent substitution system (letters that look like numbers and vice versa)
 - Extraction using regular expressions
@@ -105,7 +106,7 @@ ArtificialVisual-Plates/
 │   ├── config.py                  # Global project configuration
 │   ├── setup_dataset.py           # Dataset preparation and validation
 │   ├── train.py                   # YOLOv8 model training
-│   ├── predict.py                 # Predictions (detection only)
+│   ├── predict.py                 # Predictions
 │   ├── ocr_plate_detector.py      # Complete detection + OCR system
 │   └── main.py                    # Unified interactive interface
 ├── data/
@@ -127,32 +128,11 @@ ArtificialVisual-Plates/
 │       ├── confusion_matrix.png   # Confusion matrix
 │       └── results.csv            # Metrics per epoch
 ├── requirements.txt               # Project dependencies
-├── Placas.v1i.yolov8.zip         # Original dataset
+├── Placas.v1i.yolov8.zip          # Original dataset
 └── README.md                      # This file
 ```
 
 ---
-
-## System Requirements
-
-### Software
-- Python 3.8 or higher
-- pip (package manager)
-- Tesseract OCR 4.0 or higher
-- (Optional) CUDA 11.0+ for GPU acceleration
-- Visual Studio Code (recommended IDE)
-
-### Hardware
-**Minimum:**
-- CPU: Intel Core i5 or equivalent
-- RAM: 8 GB
-- Storage: 5 GB free
-
-**Recommended:**
-- CPU: Intel Core i7 or equivalent
-- RAM: 16 GB
-- GPU: NVIDIA with 4GB VRAM (for training)
-- Storage: 10 GB free
 
 ### Python Dependencies
 ```
@@ -193,8 +173,6 @@ Python:         3.8+
 Git:            Version control
 ```
 
-**Note**: The system was optimized to run efficiently on this mid-range gaming laptop, making it accessible for developers with similar hardware configurations.
-
 ---
 
 ## Installation
@@ -209,13 +187,9 @@ cd ArtificialVisual-Plates
 ### 2. Create Virtual Environment
 
 ```bash
-# Windows
 python -m venv venv
 venv\Scripts\activate
 
-# Linux/macOS
-python3 -m venv venv
-source venv/bin/activate
 ```
 
 ### 3. Install Python Dependencies
@@ -232,16 +206,6 @@ pip install -r requirements.txt
 2. Run installer and add to system PATH
 3. Verify installation: `tesseract --version`
 
-#### Linux (Ubuntu/Debian):
-```bash
-sudo apt update
-sudo apt install tesseract-ocr libtesseract-dev
-```
-
-#### macOS:
-```bash
-brew install tesseract
-```
 
 ### 5. Configure Tesseract Path
 
@@ -251,16 +215,6 @@ Edit `src/ocr_plate_detector.py` line 27 with the correct path:
 # Windows
 pytesseract.pytesseract.tesseract_cmd = r'C:\Program Files\Tesseract-OCR\tesseract.exe'
 
-# Linux/macOS (usually doesn't require configuration)
-```
-
-### 6. Verify Installation
-
-```bash
-python -c "import torch; print('PyTorch:', torch.__version__)"
-python -c "from ultralytics import YOLO; print('YOLOv8: OK')"
-python -c "import pytesseract; print('Tesseract: OK')"
-python -c "import easyocr; print('EasyOCR: OK')"
 ```
 
 ---
@@ -307,7 +261,7 @@ python src/train.py --resume --name exp1
 python src/train.py --help
 ```
 
-#### 3. Plate Detection (Bounding Boxes Only)
+#### 3. Plate Detection 
 
 ```bash
 # Detect in single image
@@ -332,8 +286,6 @@ python src/ocr_plate_detector.py --image plate.jpg --no-easyocr
 # Use specific experiment
 python src/ocr_plate_detector.py --image plate.jpg --experiment exp2
 
-# Don't save crops
-python src/ocr_plate_detector.py --image plate.jpg --no-save
 ```
 
 ---
@@ -381,7 +333,7 @@ TESSERACT_CONFIG = r'--oem 3 --psm 8 -c tessedit_char_whitelist=ABCDEFGHIJKLMNOP
 # EasyOCR: Spanish language, no GPU
 EASYOCR_CONFIG = {
     "languages": ['es'],
-    "gpu": False,           # Change to True if GPU compatible
+    "gpu": False,           # True if GPU compatible
 }
 ```
 
@@ -464,66 +416,6 @@ The project contemplates as a future extension:
 
 ---
 
-## Troubleshooting
-
-### Error: "No module named 'pytesseract'"
-
-**Solution:**
-```bash
-pip install pytesseract
-```
-
-### Error: "Tesseract is not installed or not in PATH"
-
-**Solution:**
-1. Verify installation: `tesseract --version`
-2. If not installed, follow installation steps according to OS
-3. Configure path in `src/ocr_plate_detector.py` line 27
-
-### Error: "CUDA out of memory"
-
-**Solution:**
-```bash
-# Reduce batch size
-python src/train.py --batch 4
-
-# Or use CPU
-python src/train.py --device cpu
-```
-
-### Detections are incorrect
-
-**Solution:**
-1. Verify that the model is trained
-2. Adjust confidence threshold:
-   ```bash
-   python src/predict.py --source image.jpg --conf 0.3
-   ```
-3. Check quality and resolution of input images
-
-### OCR doesn't recognize text correctly
-
-**Solution:**
-1. Verify Tesseract installation: `tesseract --version`
-2. Check that EasyOCR is installed: `pip show easyocr`
-3. Review saved crops in `results/crops/` for diagnosis
-4. Adjust preprocessing parameters in `config.py`
-5. Verify that the plate is within Mexican format (AAA-999-A)
-
-### EasyOCR very slow on CPU
-
-**Solution:**
-```bash
-# Use only Tesseract
-python src/ocr_plate_detector.py --image plate.jpg --no-easyocr
-
-# Or enable GPU in config.py
-EASYOCR_CONFIG = {
-    "gpu": True,
-}
-```
-
----
 
 ## Development Methodology
 
@@ -570,35 +462,6 @@ Format Validation Rate: Plates with valid format / Total detected
 
 ---
 
-## Known Limitations
-
-1. **Plate format**: The system is optimized for Mexican plates with AAA-999-A format. Other formats require adjustments to regular expressions.
-
-2. **Lighting conditions**: Although robust, the system may have difficulties with:
-   - Severe underexposure (dark plates)
-   - Overexposure with reflections
-   - Partial shadows on the plate
-
-3. **Capture angle**: Best performance with frontal plates. Angles greater than 45° may reduce accuracy.
-
-4. **Resolution**: It is recommended that the plate occupies at least 80x40 pixels in the original image.
-
-5. **Deteriorated plates**: Plates with significant physical damage, peeling paint, or illegible text may not be recognized correctly.
-
----
-
-## Contributions
-
-This project is open source and accepts contributions. Areas of interest:
-
-- Image preprocessing improvements
-- Support for other plate formats (international)
-- Inference speed optimization
-- Graphical interface implementation
-- Documentation and tutorials
-
----
-
 ## References
 
 ### Frameworks and Libraries
@@ -619,16 +482,3 @@ This project is open source and accepts contributions. Areas of interest:
 
 Developed as an academic Computer Vision project.
 **Repository**: https://github.com/KD08GG/ArtificialVisual-Plates
-
----
-
-## Contact and Support
-
-For questions, suggestions, or to report issues:
-- Open an issue on GitHub
-- Include detailed error information
-- Attach logs and screenshots if possible
-
----
-
-**Last updated**: November 2024
