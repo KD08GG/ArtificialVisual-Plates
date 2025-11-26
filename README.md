@@ -1,20 +1,44 @@
-# ArtificialVisual-Plates
+# ArtificialVisual-Plates 🚗🔍
 
 Sistema de Reconocimiento de Placas Vehiculares con Visión Artificial - Python
 
 Proyecto completo de detección y reconocimiento de placas vehiculares mexicanas utilizando:
 - **YOLOv8** para detección de placas
-- **Tesseract OCR + EasyOCR** para reconocimiento de texto
+- **Doble motor OCR**: Tesseract + EasyOCR para reconocimiento de texto
 - Preprocesamiento avanzado de imágenes con OpenCV
+
+[![Python](https://img.shields.io/badge/Python-3.8+-blue.svg)](https://www.python.org/)
+[![YOLOv8](https://img.shields.io/badge/YOLOv8-Ultralytics-00FFFF.svg)](https://github.com/ultralytics/ultralytics)
+
+---
+
+## 📋 Tabla de Contenidos
+
+- [Características](#características)
+- [Estructura del Proyecto](#estructura-del-proyecto)
+- [Instalación](#instalación)
+- [Uso](#uso)
+- [Flujo de Trabajo Completo](#flujo-de-trabajo-completo)
+- [Configuración Avanzada](#configuración-avanzada)
+- [Ejemplos](#ejemplos)
+- [Troubleshooting](#troubleshooting)
+- [Actualizaciones Recientes](#actualizaciones-recientes)
+- [Mejoras Futuras](#mejoras-futuras)
+- [Contribuciones](#contribuciones)
+- [Licencia](#licencia)
+- [Créditos](#créditos)
 
 ---
 
 ## Características
 
 - Detección automática de placas en imágenes usando YOLOv8
-- Reconocimiento de texto con doble motor OCR (Tesseract + EasyOCR)
+- **Doble motor OCR** con sistema de fallback inteligente:
+  - **Tesseract OCR**: Motor principal de reconocimiento
+  - **EasyOCR**: Fallback para casos difíciles
 - Preprocesamiento inteligente de imágenes para mejorar precisión
 - Validación de formato de placas mexicanas (AAA-999-A)
+- Sistema de corrección automática de texto mediante regex y sustituciones
 - Interfaz de línea de comandos fácil de usar
 - Scripts modulares para cada etapa del proceso
 
@@ -56,6 +80,7 @@ ArtificialVisual-Plates/
 - Python 3.8 o superior
 - pip (gestor de paquetes de Python)
 - Tesseract OCR instalado en el sistema
+- (Opcional) GPU CUDA compatible para acelerar entrenamiento y OCR
 
 ### 2. Clonar el Repositorio
 
@@ -110,6 +135,10 @@ python -c "import torch; print(torch.__version__)"
 
 # Verificar Ultralytics (YOLOv8)
 python -c "from ultralytics import YOLO; print('YOLOv8 OK')"
+
+# Verificar motores OCR
+python -c "import pytesseract; print('Tesseract OK')"
+python -c "import easyocr; print('EasyOCR OK')"
 ```
 
 ---
@@ -248,6 +277,16 @@ El módulo `ocr_plate_detector.py` incluye múltiples técnicas de preprocesamie
 
 Puedes ajustar estos parámetros en el método `preprocess_for_ocr()`.
 
+### Sistema de Fallback OCR
+
+El sistema utiliza una estrategia de doble motor con prioridad:
+
+1. **Tesseract OCR** con validación de patrón regex
+2. **EasyOCR** como fallback si Tesseract falla
+3. **Corrección forzada de formato** aplicando sustituciones inteligentes (número↔letra)
+
+Esto maximiza la tasa de reconocimiento exitoso en diferentes condiciones de iluminación y calidad de imagen.
+
 ---
 
 ## Ejemplos
@@ -327,6 +366,27 @@ python src/train.py --device cpu
 2. Prueba con EasyOCR activado (está por defecto)
 3. Ajusta los parámetros de preprocesamiento en `config.py`
 4. Verifica los recortes guardados en `results/crops/` para diagnosticar
+5. Revisa los mensajes de consola para ver qué motor OCR está funcionando
+
+---
+
+## Actualizaciones Recientes
+
+### Versión Actual
+
+- ✅ **Doble motor OCR** (Tesseract + EasyOCR) con sistema de fallback inteligente
+- ✅ **Sistema de corrección automática** con sustituciones inteligentes (número↔letra)
+- ✅ **Optimización de preprocesamiento** con múltiples métodos de binarización
+- ✅ **Validación de formato** de placas mexicanas AAA-999-A
+- ✅ **Configuración flexible** de parámetros OCR
+
+### Características Principales
+
+- Sistema de detección con YOLOv8 entrenado en dataset personalizado
+- Preprocesamiento avanzado: CLAHE, filtros bilaterales, unsharp mask
+- Corrección automática de errores comunes del OCR
+- Interfaz de línea de comandos intuitiva con modo interactivo
+- Guardado automático de recortes de placas para análisis
 
 ---
 
@@ -338,6 +398,7 @@ python src/train.py --device cpu
 - [ ] Interfaz gráfica (GUI)
 - [ ] Soporte para múltiples idiomas en OCR
 - [ ] Base de datos para almacenar resultados
+- [ ] Benchmark comparativo entre los motores OCR
 
 ---
 
@@ -366,11 +427,6 @@ Las contribuciones son bienvenidas. Por favor:
 4. Push a la rama (`git push origin feature/nueva-funcionalidad`)
 5. Abre un Pull Request
 
----
-
-## Licencia
-
-Este proyecto es de código abierto y está disponible bajo la licencia MIT.
 
 ---
 
